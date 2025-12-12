@@ -1,0 +1,77 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  * {
+    @apply border-neutral-medium;
+  }
+
+  body {
+    @apply bg-primary-white text-primary-black font-body;
+    font-family: 'Microsoft YaHei', sans-serif;
+  }
+
+  h1 {
+    @apply text-title-large font-title;
+  }
+
+  h2 {
+    @apply text-title-medium font-title;
+  }
+
+  h3 {
+    @apply text-title-small font-title;
+  }
+
+  p {
+    @apply text-body;
+  }
+
+  .caption {
+    @apply text-caption text-neutral-medium;
+  }
+}
+
+@layer components {
+  /* 按钮样式 */
+  .btn-primary {
+    @apply bg-accent-orange text-primary-white px-6 py-3 rounded-default font-body text-body font-medium;
+    @apply hover:opacity-90 transition-opacity duration-200;
+    @apply active:opacity-75;
+  }
+
+  .btn-secondary {
+    @apply border-2 border-primary-white text-primary-white px-6 py-3 rounded-default font-body text-body font-medium;
+    @apply hover:bg-primary-white hover:text-primary-black transition-colors duration-200;
+  }
+
+  .btn-outline {
+    @apply border-2 border-primary-black text-primary-black px-6 py-3 rounded-default font-body text-body font-medium;
+    @apply hover:bg-primary-black hover:text-primary-white transition-colors duration-200;
+  }
+
+  .btn-outline-white {
+    @apply border-2 border-primary-white text-primary-white px-6 py-3 rounded-default font-body text-body font-medium;
+    @apply hover:bg-primary-white hover:text-primary-black transition-colors duration-200;
+  }
+
+  /* 卡片样式 */
+  .card {
+    @apply bg-primary-white border border-neutral-medium rounded-default p-5;
+    @apply shadow-sm hover:shadow-md transition-shadow duration-200;
+  }
+
+  /* 输入框样式 */
+  .input {
+    @apply w-full px-4 py-2 h-10 border border-neutral-medium rounded-default;
+    @apply focus:outline-none focus:ring-2 focus:ring-accent-orange focus:border-transparent;
+    @apply text-body;
+  }
+
+  /* 标签样式 */
+  .label {
+    @apply block text-body font-medium mb-2;
+  }
+}
+

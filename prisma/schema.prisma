@@ -1,0 +1,206 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(uuid())
+  email     String   @unique
+  name      String?
+  password  String
+  phone     String?
+  avatar    String?
+  status    String   @default("active") // active, disabled
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  addresses Address[]
+  orders    Order[]
+  cartItems CartItem[]
+
+  @@map("users")
+}
+
+model Admin {
+  id        String   @id @default(uuid())
+  email     String   @unique
+  name      String
+  password  String
+  role      String   @default("admin") // super_admin, admin
+  status    String   @default("active") // active, disabled
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  permissions AdminPermission[]
+
+  @@map("admins")
+}
+
+model Permission {
+  id          String   @id @default(uuid())
+  name        String   @unique
+  description String?
+  resource    String   // user, product, order, payment, system
+  action      String   // create, read, update, delete, manage
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  admins AdminPermission[]
+
+  @@map("permissions")
+}
+
+model AdminPermission {
+  id           String   @id @default(uuid())
+  adminId      String
+  permissionId String
+  createdAt    DateTime @default(now())
+
+  admin      Admin      @relation(fields: [adminId], references: [id], onDelete: Cascade)
+  permission Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+
+  @@unique([adminId, permissionId])
+  @@map("admin_permissions")
+}
+
+model Category {
+  id          String   @id @default(uuid())
+  name        String   @unique
+  description String?
+  sortOrder   Int      @default(0)
+  status      String   @default("active") // active, inactive
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  products Product[]
+
+  @@map("categories")
+}
+
+model Product {
+  id          String   @id @default(uuid())
+  name        String
+  description String?  @db.Text
+  price       Decimal  @db.Decimal(10, 2)
+  stock       Int      @default(0)
+  image       String?
+  images      String[] // 多图片URL数组
+  categoryId  String?
+  status      String   @default("active") // active, inactive, sold_out
+  featured    Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  category   Category?  @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  orderItems OrderItem[]
+  cartItems  CartItem[]
+
+  @@map("products")
+}
+
+model Address {
+  id        String   @id @default(uuid())
+  userId    String
+  name      String
+  phone     String
+  province  String
+  city      String
+  district  String
+  detail    String
+  postalCode String?
+  isDefault Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user  User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  orders Order[]
+
+  @@map("addresses")
+}
+
+model Order {
+  id          String   @id @default(uuid())
+  userId      String
+  addressId   String
+  orderNumber String   @unique
+  status      String   @default("pending") // pending, paid, shipped, delivered, cancelled
+  totalAmount Decimal  @db.Decimal(10, 2)
+  paymentMethod String?
+  paymentStatus String @default("unpaid") // unpaid, paid, refunded
+  shippingInfo String? // 物流信息
+  notes       String?  @db.Text
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  user    User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  address Address    @relation(fields: [addressId], references: [id])
+  items   OrderItem[]
+
+  @@map("orders")
+}
+
+model OrderItem {
+  id        String   @id @default(uuid())
+  orderId   String
+  productId String
+  quantity  Int
+  price     Decimal  @db.Decimal(10, 2)
+  createdAt DateTime @default(now())
+
+  order   Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  product Product @relation(fields: [productId], references: [id])
+
+  @@map("order_items")
+}
+
+model CartItem {
+  id        String   @id @default(uuid())
+  userId    String
+  productId String
+  quantity  Int      @default(1)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, productId])
+  @@map("cart_items")
+}
+
+model PaymentConfig {
+  id          String   @id @default(uuid())
+  name        String   // 支付方式名称：alipay, wechat, paypal
+  displayName String   // 显示名称：支付宝、微信支付、PayPal
+  enabled     Boolean  @default(false)
+  sortOrder   Int      @default(0) // 排序顺序
+  config      Json     // 存储支付配置参数（加密存储）
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([name])
+  @@map("payment_configs")
+}
+
+model File {
+  id           String   @id @default(uuid())
+  filename     String   // 保存在服务器上的文件名
+  originalName String   // 原始文件名
+  mimeType     String
+  size         Int
+  url          String   // 对外访问的URL，例如 /uploads/xxx
+  uploadedById String?
+  createdAt    DateTime @default(now())
+
+  uploadedBy   Admin?   @relation(fields: [uploadedById], references: [id])
+
+  @@map("files")
+}
+

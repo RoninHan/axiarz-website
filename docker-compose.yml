@@ -1,0 +1,62 @@
+version: '3.8'
+
+services:
+  # PostgreSQL 数据库服务
+  postgres:
+    image: postgres:16.1-alpine
+    container_name: axiarz-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-axiarz_user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-axiarz_password}
+      POSTGRES_DB: ${POSTGRES_DB:-axiarz_db}
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-axiarz_user}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - axiarz-network
+
+  # Next.js 应用服务
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: axiarz-app
+    restart: unless-stopped
+    ports:
+      - "${APP_PORT:-3000}:3000"
+    environment:
+      - DATABASE_URL=postgresql://${POSTGRES_USER:-axiarz_user}:${POSTGRES_PASSWORD:-axiarz_password}@postgres:5432/${POSTGRES_DB:-axiarz_db}?schema=public
+      - JWT_SECRET=${JWT_SECRET:-your-super-secret-jwt-key-change-this-in-production}
+      - ADMIN_EMAIL=${ADMIN_EMAIL:-admin@axiarz.com}
+      - ADMIN_PASSWORD=${ADMIN_PASSWORD:-admin123456}
+      - ADMIN_NAME=${ADMIN_NAME:-Super Admin}
+      - NEXT_PUBLIC_APP_URL=${NEXT_PUBLIC_APP_URL:-http://localhost:3000}
+      - NODE_ENV=production
+    depends_on:
+      postgres:
+        condition: service_healthy
+    volumes:
+      - ./public/uploads:/app/public/uploads
+    networks:
+      - axiarz-network
+    command: sh -c "npx prisma migrate deploy && node server.js"
+
+volumes:
+  postgres_data:
+    driver: local
+
+networks:
+  axiarz-network:
+    driver: bridge
+
+
+
+
+
