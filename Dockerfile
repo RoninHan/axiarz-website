@@ -1,5 +1,5 @@
-# 使用 Node.js 18 作为基础镜像
-FROM node:18-alpine AS base
+# 使用 Node.js 20 作为基础镜像
+FROM node:20-alpine AS base
 
 # 安装依赖阶段
 FROM base AS deps
