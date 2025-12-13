@@ -6,9 +6,22 @@ FROM base AS deps
 RUN apk add --no-cache libc6-compat
 WORKDIR /app
 
-# 复制 package.json 和 yarn.lock（如果存在）
+# 复制 package.json 和 lock 文件（如果存在）
 COPY package.json yarn.lock* package-lock.json* ./
-RUN npm ci
+
+# 智能选择包管理器：
+# - 如果存在 yarn.lock，安装 yarn 并使用 yarn install
+# - 如果存在 package-lock.json，使用 npm ci
+# - 否则使用 npm install
+RUN \
+  if [ -f yarn.lock ]; then \
+    npm install -g yarn && \
+    yarn install --frozen-lockfile; \
+  elif [ -f package-lock.json ]; then \
+    npm ci; \
+  else \
+    npm install; \
+  fi
 
 # 构建阶段
 FROM base AS builder
