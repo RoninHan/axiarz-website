@@ -16,8 +16,9 @@ COPY package.json yarn.lock* package-lock.json* ./
 RUN \
   if [ -f yarn.lock ]; then \
     corepack enable || true; \
-    if ! command -v yarn >/dev/null 2>&1; then \
-      npm install -g yarn --force; \
+    if ! yarn --version >/dev/null 2>&1; then \
+      rm -f /usr/local/bin/yarn /usr/local/bin/yarnpkg 2>/dev/null || true; \
+      npm install -g yarn; \
     fi && \
     yarn install --frozen-lockfile; \
   elif [ -f package-lock.json ]; then \
