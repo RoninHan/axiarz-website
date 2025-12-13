@@ -39,6 +39,7 @@ model Admin {
   updatedAt DateTime @updatedAt
 
   permissions AdminPermission[]
+  files       File[]
 
   @@map("admins")
 }

@@ -29,6 +29,7 @@ RUN \
 
 # 构建阶段
 FROM base AS builder
+RUN apk add --no-cache openssl1.1-compat
 WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
