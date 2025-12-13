@@ -29,13 +29,16 @@ RUN \
 
 # 构建阶段
 FROM base AS builder
-RUN apk add --no-cache openssl1.1-compat
+RUN apk add --no-cache openssl openssl-dev
 WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
 # 设置环境变量（构建时）
 ENV NEXT_TELEMETRY_DISABLED 1
+# 设置 OpenSSL 路径（用于 Prisma）
+ENV OPENSSL_LIB_DIR=/usr/lib
+ENV OPENSSL_INCLUDE_DIR=/usr/include
 
 # 生成 Prisma Client 并构建应用
 RUN npx prisma generate
