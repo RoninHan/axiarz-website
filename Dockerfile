@@ -15,11 +15,11 @@ COPY package.json yarn.lock* package-lock.json* ./
 # - 否则使用 npm install
 RUN \
   if [ -f yarn.lock ]; then \
-    corepack enable || true; \
-    if ! yarn --version >/dev/null 2>&1; then \
-      rm -f /usr/local/bin/yarn /usr/local/bin/yarnpkg 2>/dev/null || true; \
+    rm -rf /usr/local/bin/yarn /usr/local/bin/yarnpkg 2>/dev/null || true; \
+    corepack enable 2>/dev/null || true; \
+    if ! command -v yarn >/dev/null 2>&1 || ! yarn --version >/dev/null 2>&1; then \
       npm install -g yarn; \
-    fi && \
+    fi; \
     yarn install --frozen-lockfile; \
   elif [ -f package-lock.json ]; then \
     npm ci; \
