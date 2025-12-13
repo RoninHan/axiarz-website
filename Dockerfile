@@ -10,12 +10,15 @@ WORKDIR /app
 COPY package.json yarn.lock* package-lock.json* ./
 
 # 智能选择包管理器：
-# - 如果存在 yarn.lock，安装 yarn 并使用 yarn install
+# - 如果存在 yarn.lock，启用 yarn（通过 corepack）并使用 yarn install
 # - 如果存在 package-lock.json，使用 npm ci
 # - 否则使用 npm install
 RUN \
   if [ -f yarn.lock ]; then \
-    npm install -g yarn && \
+    corepack enable || true; \
+    if ! command -v yarn >/dev/null 2>&1; then \
+      npm install -g yarn --force; \
+    fi && \
     yarn install --frozen-lockfile; \
   elif [ -f package-lock.json ]; then \
     npm ci; \
