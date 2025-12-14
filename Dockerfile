@@ -42,7 +42,7 @@ ENV OPENSSL_INCLUDE_DIR=/usr/include
 
 # 生成 Prisma Client 并构建应用
 RUN npx prisma generate
-RUN npm run build
+RUN npm run build:docker
 
 # 生产运行阶段
 FROM base AS runner
@@ -56,6 +56,10 @@ RUN adduser --system --uid 1001 nextjs
 
 # 安装 Prisma CLI（用于运行时迁移）
 RUN npm install -g prisma@5.10.2
+
+# 复制启动脚本
+COPY docker-entrypoint.sh /usr/local/bin/
+RUN chmod +x /usr/local/bin/docker-entrypoint.sh
 
 # 复制必要的文件
 # Next.js standalone 输出已经包含了必要的 node_modules，但需要额外复制 public 和 prisma
@@ -77,5 +81,5 @@ EXPOSE 3000
 ENV PORT 3000
 ENV HOSTNAME "0.0.0.0"
 
-CMD ["node", "server.js"]
+CMD ["docker-entrypoint.sh"]
 

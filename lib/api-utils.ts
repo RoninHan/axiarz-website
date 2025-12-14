@@ -1,6 +1,6 @@
 import { NextRequest } from 'next/server'
-import { verifyToken, JWTPayload } from '@/lib/auth'
-import { ApiResponse } from '@/types'
+import { verifyToken } from '@/lib/auth'
+import { ApiResponse, JWTPayload } from '@/types'
 
 export function getTokenFromRequest(request: NextRequest): string | null {
   const authHeader = request.headers.get('authorization')

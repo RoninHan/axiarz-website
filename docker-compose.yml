@@ -46,7 +46,6 @@ services:
       - ./public/uploads:/app/public/uploads
     networks:
       - axiarz-network
-    command: sh -c "npx prisma migrate deploy && node server.js"
 
 volumes:
   postgres_data:
