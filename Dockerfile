@@ -46,16 +46,16 @@ RUN npm run build:docker
 
 # 生产运行阶段
 FROM base AS runner
+RUN apk add --no-cache openssl openssl-dev
 WORKDIR /app
 
 ENV NODE_ENV production
 ENV NEXT_TELEMETRY_DISABLED 1
+ENV OPENSSL_LIB_DIR=/usr/lib
+ENV OPENSSL_INCLUDE_DIR=/usr/include
 
 RUN addgroup --system --gid 1001 nodejs
 RUN adduser --system --uid 1001 nextjs
-
-# 安装 Prisma CLI（用于运行时迁移）
-RUN npm install -g prisma@5.10.2
 
 # 复制启动脚本
 COPY docker-entrypoint.sh /usr/local/bin/
@@ -68,8 +68,10 @@ COPY --from=builder /app/.next/standalone ./
 COPY --from=builder /app/.next/static ./.next/static
 # 复制 Prisma schema 和 migrations（用于运行时迁移）
 COPY --from=builder /app/prisma ./prisma
-# 复制 Prisma Client（standalone 可能不包含）
+# 复制 Prisma Client 和 CLI
 COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
+COPY --from=builder /app/node_modules/@prisma ./node_modules/@prisma
+COPY --from=builder /app/node_modules/prisma ./node_modules/prisma
 
 # 设置权限
 RUN chown -R nextjs:nodejs /app
