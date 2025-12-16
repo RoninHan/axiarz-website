@@ -20,8 +20,9 @@ export default function ClientFooter() {
           <div>
             <h3 className="text-title-small font-title mb-4">支持</h3>
             <ul className="space-y-2 text-body text-neutral-medium">
-              <li><a href="#" className="hover:text-accent-orange transition-colors">帮助中心</a></li>
-              <li><a href="#" className="hover:text-accent-orange transition-colors">联系我们</a></li>
+              <li><a href="/help" className="hover:text-accent-orange transition-colors">帮助中心</a></li>
+              <li><a href="/contact" className="hover:text-accent-orange transition-colors">联系我们</a></li>
+              <li><a href="/solutions" className="hover:text-accent-orange transition-colors">解决方案</a></li>
             </ul>
           </div>
           <div>

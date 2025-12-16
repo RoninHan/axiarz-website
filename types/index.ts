@@ -127,6 +127,34 @@ export interface FileItem {
   createdAt: Date
 }
 
+// 系统设置类型
+export interface Setting {
+  id: string
+  key: string
+  value: any
+  createdAt: Date
+  updatedAt: Date
+}
+
+// 品牌优势类型
+export interface BrandAdvantage {
+  id: string
+  title: string
+  description: string
+  icon: string
+  sortOrder: number
+}
+
+// 客户口碑/评价类型
+export interface Testimonial {
+  id: string
+  name: string
+  avatar?: string
+  rating: number
+  content: string
+  sortOrder: number
+}
+
 // API 响应类型
 export interface ApiResponse<T = any> {
   success: boolean
@@ -142,4 +170,3 @@ export interface JWTPayload {
   role: string
   type: 'user' | 'admin'
 }
-

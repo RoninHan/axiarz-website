@@ -199,6 +199,80 @@ async function main() {
   }
   console.log('✅ 创建示例产品')
 
+  // 创建默认系统设置
+  const defaultSettings = [
+    {
+      key: 'logo',
+      value: '',
+    },
+    {
+      key: 'companyName',
+      value: 'Axiarz',
+    },
+    {
+      key: 'heroImage',
+      value: '',
+    },
+    {
+      key: 'brandAdvantages',
+      value: [
+        {
+          icon: '✓',
+          title: '高品质',
+          description: '采用优质材料，精湛工艺，确保每一件产品都达到最高标准。',
+          sortOrder: 1,
+        },
+        {
+          icon: '⚡',
+          title: '高性能',
+          description: '采用最新技术，性能卓越，满足您的各种需求。',
+          sortOrder: 2,
+        },
+        {
+          icon: '❤',
+          title: '值得信赖',
+          description: '完善的售后服务，专业的客户支持，让您购买无忧。',
+          sortOrder: 3,
+        },
+      ],
+    },
+    {
+      key: 'testimonials',
+      value: [
+        {
+          name: '张先生',
+          avatar: '',
+          rating: 5,
+          content: '产品质量非常好，性能卓越，完全超出预期。售后服务也很到位，值得推荐！',
+          sortOrder: 1,
+        },
+        {
+          name: '李女士',
+          avatar: '',
+          rating: 5,
+          content: '这是我买过最满意的产品，设计精美，功能强大，使用体验极佳！',
+          sortOrder: 2,
+        },
+        {
+          name: '王先生',
+          avatar: '',
+          rating: 5,
+          content: '性价比很高，客服服务态度好，发货速度快，包装也很仔细。',
+          sortOrder: 3,
+        },
+      ],
+    },
+  ]
+
+  for (const setting of defaultSettings) {
+    await prisma.setting.upsert({
+      where: { key: setting.key },
+      update: {},
+      create: setting,
+    })
+  }
+  console.log('✅ 创建默认系统设置')
+
   console.log('🎉 数据库初始化完成！')
 }
 

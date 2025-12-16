@@ -24,21 +24,28 @@ export default function AdminSidebar() {
       </div>
       <nav className="p-4">
         <ul className="space-y-2">
-          {menuItems.map((item) => (
-            <li key={item.href}>
-              <Link
-                href={item.href}
-                className={`flex items-center gap-3 px-4 py-3 rounded-default transition-colors ${
-                  pathname === item.href || pathname?.startsWith(item.href + '/')
-                    ? 'bg-accent-orange text-primary-white'
-                    : 'hover:bg-neutral-medium text-neutral-medium hover:text-primary-white'
-                }`}
-              >
-                <span>{item.icon}</span>
-                <span className="text-body">{item.label}</span>
-              </Link>
-            </li>
-          ))}
+          {menuItems.map((item) => {
+            // 特殊处理仪表盘，只有完全匹配才高亮
+            const isActive = item.href === '/admin'
+              ? pathname === '/admin'
+              : pathname === item.href || pathname?.startsWith(item.href + '/')
+            
+            return (
+              <li key={item.href}>
+                <Link
+                  href={item.href}
+                  className={`flex items-center gap-3 px-4 py-3 rounded-default transition-colors ${
+                    isActive
+                      ? 'bg-accent-orange text-primary-white'
+                      : 'hover:bg-neutral-medium text-neutral-medium hover:text-primary-white'
+                  }`}
+                >
+                  <span>{item.icon}</span>
+                  <span className="text-body">{item.label}</span>
+                </Link>
+              </li>
+            )
+          })}
         </ul>
       </nav>
     </aside>

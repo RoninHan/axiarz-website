@@ -205,3 +205,13 @@ model File {
   @@map("files")
 }
 
+// 系统设置
+model Setting {
+  id        String   @id @default(uuid())
+  key       String   @unique // 设置键：logo, heroImage, brandAdvantages, testimonials等
+  value     Json     // 设置值（JSON格式存储灵活数据）
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("settings")
+}

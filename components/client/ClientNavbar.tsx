@@ -4,11 +4,28 @@ import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import Button from './Button'
 import { useAuth } from '@/contexts/AuthContext'
+import { useState, useEffect } from 'react'
 
 export default function ClientNavbar() {
   const pathname = usePathname()
   const router = useRouter()
   const { user, loading, logout, isAuthenticated } = useAuth()
+  const [logo, setLogo] = useState<string>('')
+  const [companyName, setCompanyName] = useState<string>('Axiarz')
+
+  useEffect(() => {
+    fetch('/api/client/settings')
+      .then(res => res.json())
+      .then(data => {
+        if (data.settings) {
+          const logoSetting = data.settings.find((s: any) => s.key === 'logo')
+          const nameSetting = data.settings.find((s: any) => s.key === 'companyName')
+          if (logoSetting?.value) setLogo(logoSetting.value as string)
+          if (nameSetting?.value) setCompanyName(nameSetting.value as string)
+        }
+      })
+      .catch(err => console.error('Failed to load settings:', err))
+  }, [])
 
   function handleLogout() {
     if (confirm('确定要退出登录吗？')) {
@@ -21,8 +38,12 @@ export default function ClientNavbar() {
   return (
     <nav className="bg-primary-black text-primary-white h-20 flex items-center">
       <div className="container mx-auto px-6 flex items-center justify-between w-full max-w-[1920px]">
-        <Link href="/" className="text-title-medium font-title">
-          Axiarz
+        <Link href="/" className="flex items-center gap-3">
+          {logo ? (
+            <img src={logo} alt={companyName} className="h-12 w-auto" />
+          ) : (
+            <span className="text-title-medium font-title">{companyName}</span>
+          )}
         </Link>
         
         <div className="flex items-center gap-8">
