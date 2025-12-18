@@ -1,8 +1,36 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import AdminCard from '@/components/admin/AdminCard'
-import AdminButton from '@/components/admin/AdminButton'
+import {
+  Table,
+  Button,
+  Space,
+  Card,
+  Row,
+  Col,
+  Statistic,
+  Upload,
+  message,
+  Tooltip,
+  Popconfirm,
+  Image,
+  Tag,
+} from 'antd'
+import {
+  UploadOutlined,
+  DeleteOutlined,
+  DownloadOutlined,
+  EyeOutlined,
+  FileOutlined,
+  CloudUploadOutlined,
+  FileImageOutlined,
+  FilePdfOutlined,
+  FileWordOutlined,
+  FileExcelOutlined,
+  ReloadOutlined,
+} from '@ant-design/icons'
+import type { ColumnsType } from 'antd/es/table'
+import type { UploadProps } from 'antd'
 import { FileItem } from '@/types'
 
 function formatSize(size: number) {
@@ -15,11 +43,32 @@ function formatSize(size: number) {
   return `${size} B`
 }
 
+function getFileIcon(filename: string) {
+  const ext = filename.split('.').pop()?.toLowerCase()
+  if (['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg'].includes(ext || '')) {
+    return <FileImageOutlined style={{ color: '#52c41a' }} />
+  }
+  if (ext === 'pdf') {
+    return <FilePdfOutlined style={{ color: '#ff4d4f' }} />
+  }
+  if (['doc', 'docx'].includes(ext || '')) {
+    return <FileWordOutlined style={{ color: '#1890ff' }} />
+  }
+  if (['xls', 'xlsx'].includes(ext || '')) {
+    return <FileExcelOutlined style={{ color: '#52c41a' }} />
+  }
+  return <FileOutlined style={{ color: '#999' }} />
+}
+
+function isImage(filename: string) {
+  const ext = filename.split('.').pop()?.toLowerCase()
+  return ['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg'].includes(ext || '')
+}
+
 export default function FilesPage() {
   const [files, setFiles] = useState<FileItem[]>([])
   const [loading, setLoading] = useState(true)
   const [uploading, setUploading] = useState(false)
-  const [selectedFile, setSelectedFile] = useState<File | null>(null)
 
   useEffect(() => {
     fetchFiles()
@@ -28,148 +77,219 @@ export default function FilesPage() {
   async function fetchFiles() {
     try {
       setLoading(true)
-      const res = await fetch('/api/admin/files')
+      const res = await fetch('/api/admin/files', {
+        credentials: 'include',
+      })
       const data = await res.json()
       if (data.success) {
         setFiles(data.data)
       }
     } catch (error) {
       console.error('获取文件列表失败:', error)
+      message.error('获取文件列表失败')
     } finally {
       setLoading(false)
     }
   }
 
-  async function handleUpload() {
-    if (!selectedFile) {
-      alert('请选择文件')
-      return
-    }
-
-    try {
-      setUploading(true)
-      const formData = new FormData()
-      formData.append('file', selectedFile)
-
-      const res = await fetch('/api/admin/files', {
-        method: 'POST',
-        body: formData,
-      })
-      const data = await res.json()
-      if (data.success) {
-        alert('上传成功')
-        setSelectedFile(null)
-        await fetchFiles()
-      } else {
-        alert(data.error || '上传失败')
+  const uploadProps: UploadProps = {
+    name: 'file',
+    action: '/api/admin/files',
+    headers: {
+      // credentials 会自动带上 cookie
+    },
+    onChange(info) {
+      if (info.file.status === 'uploading') {
+        setUploading(true)
       }
-    } catch (error) {
-      console.error('上传文件失败:', error)
-      alert('上传失败')
-    } finally {
-      setUploading(false)
-    }
+      if (info.file.status === 'done') {
+        setUploading(false)
+        if (info.file.response?.success) {
+          message.success(`${info.file.name} 上传成功`)
+          fetchFiles()
+        } else {
+          message.error(info.file.response?.error || '上传失败')
+        }
+      } else if (info.file.status === 'error') {
+        setUploading(false)
+        message.error(`${info.file.name} 上传失败`)
+      }
+    },
+    showUploadList: false,
   }
 
-  async function handleDelete(id: string) {
-    if (!confirm('确定要删除这个文件吗？')) return
+  async function handleDelete(id: string, filename: string) {
     try {
       const res = await fetch(`/api/admin/files/${id}`, {
         method: 'DELETE',
+        credentials: 'include',
       })
       const data = await res.json()
       if (data.success) {
-        await fetchFiles()
+        message.success('删除成功')
+        fetchFiles()
       } else {
-        alert(data.error || '删除失败')
+        message.error(data.error || '删除失败')
       }
     } catch (error) {
       console.error('删除文件失败:', error)
-      alert('删除失败')
+      message.error('删除失败')
     }
   }
 
+  function handleDownload(url: string, filename: string) {
+    const link = document.createElement('a')
+    link.href = url
+    link.download = filename
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+  }
+
+  const columns: ColumnsType<FileItem> = [
+    {
+      title: '预览',
+      dataIndex: 'url',
+      key: 'preview',
+      width: 80,
+      render: (url: string, record) =>
+        isImage(record.originalName) ? (
+          <Image
+            src={url}
+            alt={record.originalName}
+            width={50}
+            height={50}
+            style={{ objectFit: 'cover', borderRadius: '4px' }}
+          />
+        ) : (
+          <div
+            style={{
+              width: 50,
+              height: 50,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              background: '#f5f5f5',
+              borderRadius: '4px',
+            }}
+          >
+            {getFileIcon(record.originalName)}
+          </div>
+        ),
+    },
+    {
+      title: '文件名',
+      dataIndex: 'originalName',
+      key: 'originalName',
+      render: (name: string) => (
+        <Space>
+          {getFileIcon(name)}
+          <span style={{ fontWeight: 500 }}>{name}</span>
+        </Space>
+      ),
+    },
+    {
+      title: '类型',
+      dataIndex: 'originalName',
+      key: 'type',
+      width: 100,
+      render: (name: string) => {
+        const ext = name.split('.').pop()?.toLowerCase()
+        return <Tag color="blue">{ext?.toUpperCase()}</Tag>
+      },
+    },
+    {
+      title: '大小',
+      dataIndex: 'size',
+      key: 'size',
+      width: 120,
+      sorter: (a, b) => a.size - b.size,
+      render: (size: number) => <span>{formatSize(size)}</span>,
+    },
+    {
+      title: '上传时间',
+      dataIndex: 'createdAt',
+      key: 'createdAt',
+      width: 180,
+      render: (date: Date) => new Date(date).toLocaleString('zh-CN'),
+    },
+    {
+      title: '操作',
+      key: 'actions',
+      width: 180,
+      fixed: 'right',
+      render: (_, record) => (
+        <Space>
+          <Tooltip title="查看">
+            <Button
+              type="text"
+              icon={<EyeOutlined />}
+              size="small"
+              onClick={() => window.open(record.url, '_blank')}
+            />
+          </Tooltip>
+          <Tooltip title="下载">
+            <Button
+              type="primary"
+              icon={<DownloadOutlined />}
+              size="small"
+              onClick={() => handleDownload(record.url, record.originalName)}
+            />
+          </Tooltip>
+          <Popconfirm
+            title="删除文件"
+            description={`确定要删除 ${record.originalName} 吗？`}
+            onConfirm={() => handleDelete(record.id, record.originalName)}
+            okText="确定"
+            cancelText="取消"
+            okButtonProps={{ danger: true }}
+          >
+            <Tooltip title="删除">
+              <Button type="primary" danger icon={<DeleteOutlined />} size="small" />
+            </Tooltip>
+          </Popconfirm>
+        </Space>
+      ),
+    },
+  ]
+
   return (
     <div>
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-title-large font-title">文件管理</h1>
-      </div>
+      {/* 上传区域 */}
+      <Card style={{ marginBottom: 24 }}>
+        <Space style={{ width: '100%', justifyContent: 'space-between' }}>
+          <Upload {...uploadProps}>
+            <Button
+              type="primary"
+              icon={<UploadOutlined />}
+              loading={uploading}
+              size="large"
+            >
+              {uploading ? '上传中...' : '上传文件'}
+            </Button>
+          </Upload>
+          <Button icon={<ReloadOutlined />} onClick={fetchFiles}>
+            刷新
+          </Button>
+        </Space>
+      </Card>
 
-      <AdminCard className="mb-6" title="上传文件">
-        <div className="flex items-center gap-4">
-          <input
-            type="file"
-            onChange={(e) => setSelectedFile(e.target.files?.[0] || null)}
-            className="text-body"
-          />
-          <AdminButton
-            variant="primary"
-            onClick={handleUpload}
-            disabled={uploading || !selectedFile}
-            className="whitespace-nowrap"
-          >
-            {uploading ? '上传中...' : '上传'}
-          </AdminButton>
-          {selectedFile && (
-            <span className="text-caption text-neutral-medium">
-              已选择: {selectedFile.name} ({formatSize(selectedFile.size)})
-            </span>
-          )}
-        </div>
-      </AdminCard>
-
-      <AdminCard title="文件列表">
-        {loading ? (
-          <div className="text-center py-12">加载中...</div>
-        ) : files.length === 0 ? (
-          <div className="text-center py-12 text-neutral-medium">暂无文件</div>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead>
-                <tr className="border-b border-neutral-medium">
-                  <th className="text-left py-3 px-4 text-body font-medium">文件名</th>
-                  <th className="text-left py-3 px-4 text-body font-medium">大小</th>
-                  <th className="text-left py-3 px-4 text-body font-medium">上传时间</th>
-                  <th className="text-left py-3 px-4 text-body font-medium">操作</th>
-                </tr>
-              </thead>
-              <tbody>
-                {files.map((file) => (
-                  <tr key={file.id} className="border-b border-neutral-medium">
-                    <td className="py-3 px-4 text-body">{file.originalName}</td>
-                    <td className="py-3 px-4 text-body">{formatSize(file.size)}</td>
-                    <td className="py-3 px-4 text-body text-caption">
-                      {new Date(file.createdAt).toLocaleString('zh-CN')}
-                    </td>
-                    <td className="py-3 px-4">
-                      <div className="flex gap-2">
-                        <a href={file.url} target="_blank" rel="noreferrer">
-                          <AdminButton variant="secondary" className="whitespace-nowrap">
-                            查看
-                          </AdminButton>
-                        </a>
-                        <a href={file.url} download={file.originalName}>
-                          <AdminButton variant="secondary" className="whitespace-nowrap">
-                            下载
-                          </AdminButton>
-                        </a>
-                        <AdminButton
-                          variant="danger"
-                          onClick={() => handleDelete(file.id)}
-                          className="whitespace-nowrap"
-                        >
-                          删除
-                        </AdminButton>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </AdminCard>
+      {/* 文件表格 */}
+      <Card>
+        <Table
+          columns={columns}
+          dataSource={files}
+          rowKey="id"
+          loading={loading}
+          pagination={{
+            pageSize: 10,
+            showSizeChanger: true,
+            showQuickJumper: true,
+            showTotal: (total) => `共 ${total} 个文件`,
+          }}
+          scroll={{ x: 1000 }}
+        />
+      </Card>
     </div>
   )
 }

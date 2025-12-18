@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { message } from 'antd'
 import Button from '@/components/client/Button'
 import Card from '@/components/client/Card'
 import Input from '@/components/client/Input'
@@ -13,6 +14,7 @@ function AddressesPageContent() {
   const [addresses, setAddresses] = useState<Address[]>([])
   const [loading, setLoading] = useState(true)
   const [editing, setEditing] = useState<Address | null>(null)
+  const [messageApi, contextHolder] = message.useMessage()
   const [formData, setFormData] = useState({
     name: '',
     phone: '',
@@ -83,32 +85,33 @@ function AddressesPageContent() {
       })
       const data = await res.json()
       if (data.success) {
+        messageApi.success(editing ? '地址已更新' : '地址已添加')
         await fetchAddresses()
         handleCancel()
       } else {
-        alert(data.error || '操作失败')
+        messageApi.error(data.error || '操作失败')
       }
     } catch (error) {
       console.error('保存地址失败:', error)
-      alert('操作失败')
+      messageApi.error('操作失败')
     }
   }
 
   async function handleDelete(id: string) {
-    if (!confirm('确定要删除这个地址吗？')) return
     try {
       const res = await fetch(`/api/client/addresses/${id}`, {
         method: 'DELETE',
       })
       const data = await res.json()
       if (data.success) {
+        messageApi.success('地址已删除')
         await fetchAddresses()
       } else {
-        alert(data.error || '删除失败')
+        messageApi.error(data.error || '删除失败')
       }
     } catch (error) {
       console.error('删除地址失败:', error)
-      alert('删除失败')
+      messageApi.error('删除失败')
     }
   }
 
@@ -118,6 +121,7 @@ function AddressesPageContent() {
 
   return (
     <div className="container mx-auto px-6 py-12 max-w-[1920px]">
+      {contextHolder}
       <div className="flex justify-between items-center mb-8">
         <h1 className="text-title-large font-title">收货地址</h1>
         {!editing && (

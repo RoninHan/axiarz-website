@@ -9,6 +9,7 @@ interface AuthContextType {
   login: (email: string, password: string) => Promise<{ success: boolean; error?: string }>
   register: (email: string, password: string, name?: string) => Promise<{ success: boolean; error?: string }>
   logout: () => void
+  refreshUser: () => Promise<void>
   isAuthenticated: boolean
 }
 
@@ -103,6 +104,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setUser(null)
   }
 
+  async function refreshUser() {
+    try {
+      const res = await fetch('/api/auth/me', {
+        credentials: 'include',
+      })
+      const data = await res.json()
+      if (data.success && data.data) {
+        setUser(data.data)
+      }
+    } catch (error) {
+      console.error('刷新用户信息失败:', error)
+    }
+  }
+
   return (
     <AuthContext.Provider
       value={{
@@ -111,6 +126,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         login,
         register,
         logout,
+        refreshUser,
         isAuthenticated: !!user,
       }}
     >

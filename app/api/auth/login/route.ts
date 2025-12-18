@@ -33,7 +33,13 @@ export async function POST(request: NextRequest) {
         type: 'admin',
       })
 
-      return successResponse({ admin, token })
+      const response = successResponse({ admin, token })
+      // 设置 HttpOnly cookie
+      response.headers.set(
+        'Set-Cookie',
+        `token=${token}; Path=/; HttpOnly; SameSite=Lax; Max-Age=604800`
+      )
+      return response
     } else {
       // 用户登录
       const user = await prisma.user.findUnique({

@@ -36,7 +36,9 @@ export interface Category {
 export interface Product {
   id: string
   name: string
+  sku?: string | null
   description: string | null
+  content?: string | null
   price: number
   stock: number
   image: string | null
@@ -153,6 +155,36 @@ export interface Testimonial {
   rating: number
   content: string
   sortOrder: number
+}
+
+// 解决方案类型
+export interface Solution {
+  id: string
+  title: string
+  slug: string
+  description: string | null
+  content: string
+  coverImage: string | null
+  status: string
+  sortOrder: number
+  createdAt: Date
+  updatedAt: Date
+}
+
+// 帮助文章类型
+export interface HelpArticle {
+  id: string
+  title: string
+  slug: string
+  category: string
+  content: string
+  excerpt: string | null
+  status: string
+  sortOrder: number
+  viewCount: number
+  featured: boolean
+  createdAt: Date
+  updatedAt: Date
 }
 
 // API 响应类型

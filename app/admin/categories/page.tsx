@@ -1,11 +1,36 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import Link from 'next/link'
-import AdminCard from '@/components/admin/AdminCard'
-import AdminButton from '@/components/admin/AdminButton'
-import Input from '@/components/client/Input'
-import Textarea from '@/components/client/Textarea'
+import {
+  Table,
+  Button,
+  Modal,
+  Form,
+  Input,
+  Select,
+  InputNumber,
+  Space,
+  Tag,
+  Card,
+  Row,
+  Col,
+  Statistic,
+  message,
+  Tooltip,
+  Popconfirm,
+} from 'antd'
+import {
+  PlusOutlined,
+  EditOutlined,
+  DeleteOutlined,
+  FolderOutlined,
+  CheckCircleOutlined,
+  CloseCircleOutlined,
+  ReloadOutlined,
+} from '@ant-design/icons'
+import type { ColumnsType } from 'antd/es/table'
+
+const { TextArea } = Input
 
 interface Category {
   id: string
@@ -20,13 +45,9 @@ interface Category {
 export default function CategoriesPage() {
   const [categories, setCategories] = useState<Category[]>([])
   const [loading, setLoading] = useState(true)
-  const [editing, setEditing] = useState<Category | null>(null)
-  const [formData, setFormData] = useState({
-    name: '',
-    description: '',
-    sortOrder: 0,
-    status: 'active',
-  })
+  const [modalVisible, setModalVisible] = useState(false)
+  const [editingCategory, setEditingCategory] = useState<Category | null>(null)
+  const [form] = Form.useForm()
 
   useEffect(() => {
     fetchCategories()
@@ -35,181 +56,259 @@ export default function CategoriesPage() {
   async function fetchCategories() {
     try {
       setLoading(true)
-      const res = await fetch('/api/admin/categories')
+      const res = await fetch('/api/admin/categories', {
+        credentials: 'include',
+      })
       const data = await res.json()
       if (data.success) {
         setCategories(data.data)
       }
     } catch (error) {
       console.error('获取分类失败:', error)
+      message.error('获取分类列表失败')
     } finally {
       setLoading(false)
     }
   }
 
-  function handleEdit(category: Category) {
-    setEditing(category)
-    setFormData({
+  function showCreateModal() {
+    setEditingCategory(null)
+    form.resetFields()
+    form.setFieldsValue({
+      status: 'active',
+      sortOrder: 0,
+    })
+    setModalVisible(true)
+  }
+
+  function showEditModal(category: Category) {
+    setEditingCategory(category)
+    form.setFieldsValue({
       name: category.name,
-      description: category.description || '',
+      description: category.description,
       sortOrder: category.sortOrder,
       status: category.status,
     })
-  }
-
-  function handleCancel() {
-    setEditing(null)
-    setFormData({
-      name: '',
-      description: '',
-      sortOrder: 0,
-      status: 'active',
-    })
+    setModalVisible(true)
   }
 
   async function handleSubmit() {
-    if (!formData.name) {
-      alert('分类名称不能为空')
-      return
-    }
-
     try {
-      const url = editing ? `/api/admin/categories/${editing.id}` : '/api/admin/categories'
-      const method = editing ? 'PATCH' : 'POST'
+      const values = await form.validateFields()
+      const url = editingCategory
+        ? `/api/admin/categories/${editingCategory.id}`
+        : '/api/admin/categories'
+      const method = editingCategory ? 'PATCH' : 'POST'
 
       const res = await fetch(url, {
         method,
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData),
+        credentials: 'include',
+        body: JSON.stringify(values),
       })
       const data = await res.json()
       if (data.success) {
+        message.success(editingCategory ? '分类更新成功' : '分类创建成功')
+        setModalVisible(false)
+        form.resetFields()
         await fetchCategories()
-        handleCancel()
       } else {
-        alert(data.error || '操作失败')
+        message.error(data.error || '操作失败')
       }
     } catch (error) {
       console.error('保存分类失败:', error)
-      alert('操作失败')
+      message.error('操作失败')
     }
   }
 
   async function handleDelete(id: string) {
-    if (!confirm('确定要删除这个分类吗？')) return
     try {
       const res = await fetch(`/api/admin/categories/${id}`, {
         method: 'DELETE',
+        credentials: 'include',
       })
       const data = await res.json()
       if (data.success) {
+        message.success('分类删除成功')
         await fetchCategories()
       } else {
-        alert(data.error || '删除失败')
+        message.error(data.error || '删除失败')
       }
     } catch (error) {
       console.error('删除分类失败:', error)
-      alert('删除失败')
+      message.error('删除失败')
     }
   }
 
+  const columns: ColumnsType<Category> = [
+    {
+      title: '分类名称',
+      dataIndex: 'name',
+      key: 'name',
+      width: 200,
+      render: (name: string) => (
+        <Space>
+          <FolderOutlined style={{ color: '#667eea' }} />
+          <span style={{ fontWeight: 500 }}>{name}</span>
+        </Space>
+      ),
+    },
+    {
+      title: '描述',
+      dataIndex: 'description',
+      key: 'description',
+      ellipsis: true,
+      render: (desc: string | null) => desc || <span style={{ color: '#999' }}>未设置</span>,
+    },
+    {
+      title: '排序',
+      dataIndex: 'sortOrder',
+      key: 'sortOrder',
+      width: 100,
+      sorter: (a, b) => a.sortOrder - b.sortOrder,
+      render: (order: number) => <Tag color="blue">{order}</Tag>,
+    },
+    {
+      title: '状态',
+      dataIndex: 'status',
+      key: 'status',
+      width: 120,
+      filters: [
+        { text: '启用', value: 'active' },
+        { text: '禁用', value: 'inactive' },
+      ],
+      onFilter: (value, record) => record.status === value,
+      render: (status: string) => (
+        <Tag
+          icon={status === 'active' ? <CheckCircleOutlined /> : <CloseCircleOutlined />}
+          color={status === 'active' ? 'success' : 'default'}
+        >
+          {status === 'active' ? '启用' : '禁用'}
+        </Tag>
+      ),
+    },
+    {
+      title: '创建时间',
+      dataIndex: 'createdAt',
+      key: 'createdAt',
+      width: 180,
+      render: (date: Date) => new Date(date).toLocaleString('zh-CN'),
+    },
+    {
+      title: '操作',
+      key: 'action',
+      width: 180,
+      fixed: 'right',
+      render: (_, record) => (
+        <Space>
+          <Tooltip title="编辑">
+            <Button
+              type="primary"
+              icon={<EditOutlined />}
+              size="small"
+              onClick={() => showEditModal(record)}
+            />
+          </Tooltip>
+          <Popconfirm
+            title="删除分类"
+            description="确定要删除这个分类吗？"
+            onConfirm={() => handleDelete(record.id)}
+            okText="确定"
+            cancelText="取消"
+            okButtonProps={{ danger: true }}
+          >
+            <Tooltip title="删除">
+              <Button type="primary" danger icon={<DeleteOutlined />} size="small" />
+            </Tooltip>
+          </Popconfirm>
+        </Space>
+      ),
+    },
+  ]
+
   return (
     <div>
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-title-large font-title">分类管理</h1>
-        {!editing && (
-          <AdminButton variant="primary" onClick={() => setEditing({} as Category)}>
+      {/* 操作按钮 */}
+      <Card style={{ marginBottom: 24 }}>
+        <Space style={{ width: '100%', justifyContent: 'space-between' }}>
+          <Button type="primary" icon={<PlusOutlined />} onClick={showCreateModal}>
             新增分类
-          </AdminButton>
-        )}
-      </div>
+          </Button>
+          <Button icon={<ReloadOutlined />} onClick={fetchCategories}>
+            刷新
+          </Button>
+        </Space>
+      </Card>
 
-      {editing && (
-        <AdminCard className="mb-6">
-          <h3 className="text-title-small font-title mb-4">
-            {editing.id ? '编辑分类' : '新增分类'}
-          </h3>
-          <div className="space-y-4">
-            <Input
-              label="分类名称 *"
-              value={formData.name}
-              onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-            />
-            <Textarea
-              label="分类描述"
-              value={formData.description}
-              onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-              rows={3}
-            />
-            <div className="grid grid-cols-2 gap-4">
-              <Input
+      {/* 分类表格 */}
+      <Card>
+        <Table
+          columns={columns}
+          dataSource={categories}
+          rowKey="id"
+          loading={loading}
+          pagination={{
+            pageSize: 10,
+            showSizeChanger: true,
+            showQuickJumper: true,
+            showTotal: (total) => `共 ${total} 条记录`,
+          }}
+        />
+      </Card>
+
+      {/* 新增/编辑弹窗 */}
+      <Modal
+        title={editingCategory ? '编辑分类' : '新增分类'}
+        open={modalVisible}
+        onOk={handleSubmit}
+        onCancel={() => {
+          setModalVisible(false)
+          form.resetFields()
+        }}
+        okText="保存"
+        cancelText="取消"
+        width={600}
+      >
+        <Form form={form} layout="vertical" style={{ marginTop: 24 }}>
+          <Form.Item
+            label="分类名称"
+            name="name"
+            rules={[{ required: true, message: '请输入分类名称' }]}
+          >
+            <Input placeholder="请输入分类名称" />
+          </Form.Item>
+          <Form.Item label="分类描述" name="description">
+            <TextArea rows={4} placeholder="请输入分类描述（可选）" />
+          </Form.Item>
+          <Row gutter={16}>
+            <Col span={12}>
+              <Form.Item
                 label="排序顺序"
-                type="number"
-                value={formData.sortOrder}
-                onChange={(e) => setFormData({ ...formData, sortOrder: parseInt(e.target.value) || 0 })}
-              />
-              <select
-                className="input"
-                value={formData.status}
-                onChange={(e) => setFormData({ ...formData, status: e.target.value })}
+                name="sortOrder"
+                rules={[{ required: true, message: '请输入排序顺序' }]}
               >
-                <option value="active">启用</option>
-                <option value="inactive">禁用</option>
-              </select>
-            </div>
-          </div>
-          <div className="flex gap-4 mt-4">
-            <AdminButton variant="primary" onClick={handleSubmit}>保存</AdminButton>
-            <AdminButton variant="secondary" onClick={handleCancel}>取消</AdminButton>
-          </div>
-        </AdminCard>
-      )}
-
-      <AdminCard>
-        {loading ? (
-          <div className="text-center py-12">加载中...</div>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead>
-                <tr className="border-b border-neutral-medium">
-                  <th className="text-left py-3 px-4 text-body font-medium">分类名称</th>
-                  <th className="text-left py-3 px-4 text-body font-medium">描述</th>
-                  <th className="text-left py-3 px-4 text-body font-medium">排序</th>
-                  <th className="text-left py-3 px-4 text-body font-medium">状态</th>
-                  <th className="text-left py-3 px-4 text-body font-medium">操作</th>
-                </tr>
-              </thead>
-              <tbody>
-                {categories.map((category) => (
-                  <tr key={category.id} className="border-b border-neutral-medium">
-                    <td className="py-3 px-4 text-body">{category.name}</td>
-                    <td className="py-3 px-4 text-body text-neutral-medium">
-                      {category.description || '-'}
-                    </td>
-                    <td className="py-3 px-4 text-body">{category.sortOrder}</td>
-                    <td className="py-3 px-4 text-body">
-                      <span className={category.status === 'active' ? 'text-green-600' : 'text-red-600'}>
-                        {category.status === 'active' ? '启用' : '禁用'}
-                      </span>
-                    </td>
-                    <td className="py-3 px-4">
-                      <div className="flex gap-2">
-                        <AdminButton variant="secondary" onClick={() => handleEdit(category)}>
-                          编辑
-                        </AdminButton>
-                        <AdminButton variant="danger" onClick={() => handleDelete(category.id)}>
-                          删除
-                        </AdminButton>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </AdminCard>
+                <InputNumber
+                  style={{ width: '100%' }}
+                  min={0}
+                  placeholder="数字越小越靠前"
+                />
+              </Form.Item>
+            </Col>
+            <Col span={12}>
+              <Form.Item
+                label="状态"
+                name="status"
+                rules={[{ required: true, message: '请选择状态' }]}
+              >
+                <Select>
+                  <Select.Option value="active">启用</Select.Option>
+                  <Select.Option value="inactive">禁用</Select.Option>
+                </Select>
+              </Form.Item>
+            </Col>
+          </Row>
+        </Form>
+      </Modal>
     </div>
   )
 }

@@ -2,11 +2,29 @@
 
 import { useEffect, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
-import AdminCard from '@/components/admin/AdminCard'
-import AdminButton from '@/components/admin/AdminButton'
-import Input from '@/components/client/Input'
-import Textarea from '@/components/client/Textarea'
+import dynamic from 'next/dynamic'
+import {
+  Form,
+  Input,
+  InputNumber,
+  Select,
+  Button,
+  Card,
+  Space,
+  Switch,
+  message,
+  Spin,
+  Row,
+  Col,
+} from 'antd'
+import {
+  ArrowLeftOutlined,
+  SaveOutlined,
+} from '@ant-design/icons'
 import { Product } from '@/types'
+
+const { TextArea } = Input
+const RichTextEditor = dynamic(() => import('@/components/admin/RichTextEditor'), { ssr: false })
 
 interface Category {
   id: string
@@ -17,21 +35,12 @@ interface Category {
 export default function EditProductPage() {
   const params = useParams()
   const router = useRouter()
+  const [form] = Form.useForm()
   const [product, setProduct] = useState<Product | null>(null)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [categories, setCategories] = useState<Category[]>([])
-  const [formData, setFormData] = useState({
-    name: '',
-    description: '',
-    price: '',
-    stock: '',
-    image: '',
-    images: '',
-    categoryId: '',
-    status: 'active',
-    featured: false,
-  })
+  const [content, setContent] = useState('')
 
   useEffect(() => {
     fetchCategories()
@@ -39,7 +48,9 @@ export default function EditProductPage() {
 
   async function fetchCategories() {
     try {
-      const res = await fetch('/api/admin/categories')
+      const res = await fetch('/api/admin/categories', {
+        credentials: 'include',
+      })
       const data = await res.json()
       if (data.success) {
         setCategories(data.data.filter((c: Category) => c.status === 'active'))
@@ -58,161 +69,280 @@ export default function EditProductPage() {
   async function fetchProduct(id: string) {
     try {
       setLoading(true)
-      const res = await fetch(`/api/admin/products/${id}`)
+      const res = await fetch(`/api/admin/products/${id}`, {
+        credentials: 'include',
+      })
       const data = await res.json()
       if (data.success) {
         setProduct(data.data)
-        setFormData({
+        setContent(data.data.content || '')
+        form.setFieldsValue({
           name: data.data.name,
+          sku: data.data.sku || '',
           description: data.data.description || '',
-          price: data.data.price.toString(),
-          stock: data.data.stock.toString(),
+          price: data.data.price,
+          stock: data.data.stock,
           image: data.data.image || '',
-          images: (data.data.images || []).join(','),
-          categoryId: data.data.categoryId || '',
+          images: (data.data.images || []).join(', '),
+          categoryId: data.data.categoryId || undefined,
           status: data.data.status,
           featured: data.data.featured,
         })
       }
     } catch (error) {
       console.error('获取产品失败:', error)
+      message.error('获取产品失败')
     } finally {
       setLoading(false)
     }
   }
 
-  async function handleSubmit() {
+  async function handleSubmit(values: any) {
     if (!product) return
 
     try {
       setSaving(true)
-      const images = formData.images ? formData.images.split(',').map(s => s.trim()) : []
+      const images = values.images 
+        ? values.images.split(',').map((s: string) => s.trim()).filter((s: string) => s) 
+        : []
       
       const res = await fetch(`/api/admin/products/${product.id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
         body: JSON.stringify({
-          ...formData,
-          price: parseFloat(formData.price),
-          stock: parseInt(formData.stock),
+          ...values,
+          content,
           images,
         }),
       })
       const data = await res.json()
       if (data.success) {
-        alert('保存成功')
-        router.push('/admin/products')
+        message.success('保存成功')
+        setTimeout(() => router.push('/admin/products'), 1000)
       } else {
-        alert(data.error || '保存失败')
+        message.error(data.error || '保存失败')
       }
     } catch (error) {
       console.error('保存产品失败:', error)
-      alert('保存失败')
+      message.error('保存失败')
     } finally {
       setSaving(false)
     }
   }
 
   if (loading) {
-    return <div className="text-center py-12">加载中...</div>
+    return (
+      <div style={{ textAlign: 'center', padding: '100px 0' }}>
+        <Spin size="large" tip="加载中..." />
+      </div>
+    )
   }
 
   if (!product) {
-    return <div className="text-center py-12">产品不存在</div>
+    return (
+      <Card>
+        <div style={{ textAlign: 'center', padding: '50px 0' }}>
+          <p style={{ fontSize: 16, color: '#999' }}>产品不存在</p>
+          <Button onClick={() => router.push('/admin/products')} style={{ marginTop: 16 }}>
+            返回列表
+          </Button>
+        </div>
+      </Card>
+    )
   }
 
   return (
+  return (
     <div>
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-title-large font-title">编辑产品</h1>
-        <AdminButton variant="secondary" onClick={() => router.back()}>
-          返回
-        </AdminButton>
-      </div>
-
-      <AdminCard>
-        <div className="space-y-4">
-          <Input
-            label="产品名称 *"
-            value={formData.name}
-            onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-          />
-          <Textarea
-            label="产品描述"
-            value={formData.description}
-            onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-            rows={4}
-          />
-          <div className="grid grid-cols-2 gap-4">
-            <Input
-              label="价格 *"
-              type="number"
-              step="0.01"
-              value={formData.price}
-              onChange={(e) => setFormData({ ...formData, price: e.target.value })}
-            />
-            <Input
-              label="库存 *"
-              type="number"
-              value={formData.stock}
-              onChange={(e) => setFormData({ ...formData, stock: e.target.value })}
-            />
-          </div>
-          <Input
-            label="主图URL"
-            value={formData.image}
-            onChange={(e) => setFormData({ ...formData, image: e.target.value })}
-          />
-          <Input
-            label="多图URL (用逗号分隔)"
-            value={formData.images}
-            onChange={(e) => setFormData({ ...formData, images: e.target.value })}
-          />
+      {/* 页面标题 */}
+      <Card style={{ marginBottom: 24 }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <div>
-            <label className="label">分类</label>
-            <select
-              className="input"
-              value={formData.categoryId}
-              onChange={(e) => setFormData({ ...formData, categoryId: e.target.value })}
-            >
-              <option value="">无分类</option>
-              {categories.map((category) => (
-                <option key={category.id} value={category.id}>
-                  {category.name}
-                </option>
-              ))}
-            </select>
+            <h1 style={{ margin: 0, fontSize: 24, fontWeight: 600 }}>编辑产品</h1>
+            <p style={{ margin: '8px 0 0', color: '#666' }}>修改产品信息</p>
           </div>
-          <select
-            className="input"
-            value={formData.status}
-            onChange={(e) => setFormData({ ...formData, status: e.target.value })}
+          <Button
+            icon={<ArrowLeftOutlined />}
+            onClick={() => router.back()}
           >
-            <option value="active">在售</option>
-            <option value="inactive">下架</option>
-            <option value="sold_out">缺货</option>
-          </select>
-          <div className="flex items-center">
-            <input
-              type="checkbox"
-              id="featured"
-              checked={formData.featured}
-              onChange={(e) => setFormData({ ...formData, featured: e.target.checked })}
-              className="mr-2"
-            />
-            <label htmlFor="featured" className="text-body">设为精选产品</label>
-          </div>
-          <div className="flex gap-4 pt-4">
-            <AdminButton variant="primary" onClick={handleSubmit} disabled={saving}>
-              {saving ? '保存中...' : '保存'}
-            </AdminButton>
-            <AdminButton variant="secondary" onClick={() => router.back()}>
-              取消
-            </AdminButton>
-          </div>
+            返回
+          </Button>
         </div>
-      </AdminCard>
+      </Card>
+
+      {/* 表单区域 */}
+      <Form
+        form={form}
+        layout="vertical"
+        onFinish={handleSubmit}
+      >
+        <Row gutter={24}>
+          {/* 左侧：基本信息 */}
+          <Col span={16}>
+            <Card title="基本信息" style={{ marginBottom: 24 }}>
+              <Form.Item
+                label="产品名称"
+                name="name"
+                rules={[{ required: true, message: '请输入产品名称' }]}
+              >
+                <Input placeholder="请输入产品名称" size="large" />
+              </Form.Item>
+
+              <Form.Item
+                label="产品编号 (SKU)"
+                name="sku"
+              >
+                <Input placeholder="可选，用于产品识别" />
+              </Form.Item>
+
+              <Form.Item
+                label="产品描述"
+                name="description"
+              >
+                <TextArea
+                  placeholder="请输入产品简短描述"
+                  rows={4}
+                  showCount
+                  maxLength={500}
+                />
+              </Form.Item>
+
+              <Row gutter={16}>
+                <Col span={12}>
+                  <Form.Item
+                    label="价格"
+                    name="price"
+                    rules={[{ required: true, message: '请输入价格' }]}
+                  >
+                    <InputNumber
+                      placeholder="0.00"
+                      style={{ width: '100%' }}
+                      min={0}
+                      precision={2}
+                      prefix="¥"
+                    />
+                  </Form.Item>
+                </Col>
+                <Col span={12}>
+                  <Form.Item
+                    label="库存"
+                    name="stock"
+                    rules={[{ required: true, message: '请输入库存' }]}
+                  >
+                    <InputNumber
+                      placeholder="0"
+                      style={{ width: '100%' }}
+                      min={0}
+                    />
+                  </Form.Item>
+                </Col>
+              </Row>
+            </Card>
+
+            <Card title="产品详情" style={{ marginBottom: 24 }}>
+              <div style={{ marginBottom: 8 }}>
+                <label style={{ fontSize: 14, fontWeight: 500 }}>详细介绍</label>
+              </div>
+              <RichTextEditor
+                value={content}
+                onChange={(value) => setContent(value)}
+              />
+            </Card>
+
+            <Card title="产品图片" style={{ marginBottom: 24 }}>
+              <Form.Item
+                label="主图 URL"
+                name="image"
+                extra="建议尺寸：800x800px"
+              >
+                <Input placeholder="请输入产品主图 URL" />
+              </Form.Item>
+
+              <Form.Item
+                label="多图 URL"
+                name="images"
+                extra="多个图片 URL 请用英文逗号分隔"
+              >
+                <TextArea
+                  placeholder="例如：https://example.com/image1.jpg, https://example.com/image2.jpg"
+                  rows={3}
+                />
+              </Form.Item>
+            </Card>
+          </Col>
+
+          {/* 右侧：设置选项 */}
+          <Col span={8}>
+            <Card title="产品设置" style={{ marginBottom: 24 }}>
+              <Form.Item
+                label="产品分类"
+                name="categoryId"
+              >
+                <Select
+                  placeholder="请选择分类"
+                  allowClear
+                  showSearch
+                  optionFilterProp="children"
+                >
+                  {categories.map((category) => (
+                    <Select.Option key={category.id} value={category.id}>
+                      {category.name}
+                    </Select.Option>
+                  ))}
+                </Select>
+              </Form.Item>
+
+              <Form.Item
+                label="产品状态"
+                name="status"
+                rules={[{ required: true, message: '请选择产品状态' }]}
+              >
+                <Select>
+                  <Select.Option value="active">在售</Select.Option>
+                  <Select.Option value="inactive">下架</Select.Option>
+                  <Select.Option value="sold_out">缺货</Select.Option>
+                </Select>
+              </Form.Item>
+
+              <Form.Item
+                label="精选产品"
+                name="featured"
+                valuePropName="checked"
+              >
+                <Switch checkedChildren="是" unCheckedChildren="否" />
+              </Form.Item>
+            </Card>
+
+            <Card>
+              <Space style={{ width: '100%' }} direction="vertical" size="middle">
+                <Button
+                  type="primary"
+                  icon={<SaveOutlined />}
+                  htmlType="submit"
+                  loading={saving}
+                  size="large"
+                  block
+                  style={{
+                    background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                    border: 'none',
+                  }}
+                >
+                  {saving ? '保存中...' : '保存修改'}
+                </Button>
+                <Button
+                  icon={<ArrowLeftOutlined />}
+                  onClick={() => router.back()}
+                  size="large"
+                  block
+                >
+                  取消
+                </Button>
+              </Space>
+            </Card>
+          </Col>
+        </Row>
+      </Form>
     </div>
   )
 }
-

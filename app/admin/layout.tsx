@@ -2,8 +2,11 @@
 
 import { useEffect, useState } from 'react'
 import { usePathname, useRouter } from 'next/navigation'
+import { Layout, Spin } from 'antd'
 import AdminSidebar from '@/components/admin/AdminSidebar'
 import AdminHeader from '@/components/admin/AdminHeader'
+
+const { Content } = Layout
 
 export default function AdminLayout({
   children,
@@ -26,13 +29,19 @@ export default function AdminLayout({
     // 验证管理员登录状态
     async function checkAuth() {
       try {
-        const res = await fetch('/api/auth/me')
+        console.log('检查管理员认证状态...')
+        const res = await fetch('/api/auth/me', {
+          credentials: 'include', // 确保发送 cookie
+        })
         const data = await res.json()
+        console.log('认证检查结果:', data)
         
         if (data.success && data.data.type === 'admin') {
+          console.log('管理员认证成功')
           setIsAuthenticated(true)
         } else {
           // 未登录或不是管理员，跳转到登录页
+          console.log('管理员认证失败，跳转到登录页')
           router.push('/admin/login')
         }
       } catch (error) {
@@ -54,8 +63,16 @@ export default function AdminLayout({
   // 加载中显示
   if (loading) {
     return (
-      <div className="min-h-screen bg-neutral-light flex items-center justify-center">
-        <p className="text-body text-neutral-medium">加载中...</p>
+      <div 
+        style={{
+          minHeight: '100vh',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          background: 'linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%)',
+        }}
+      >
+        <Spin size="large" tip="加载中..." />
       </div>
     )
   }
@@ -63,21 +80,39 @@ export default function AdminLayout({
   // 未登录不显示内容（会自动跳转）
   if (!isAuthenticated) {
     return (
-      <div className="min-h-screen bg-neutral-light flex items-center justify-center">
-        <p className="text-body text-neutral-medium">正在跳转...</p>
+      <div 
+        style={{
+          minHeight: '100vh',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          background: 'linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%)',
+        }}
+      >
+        <Spin size="large" tip="正在跳转..." />
       </div>
     )
   }
 
   // 其他管理页面显示完整布局
   return (
-    <div className="min-h-screen bg-neutral-light">
+    <Layout style={{ minHeight: '100vh' }}>
       <AdminSidebar />
-      <div className="ml-[220px] flex flex-col min-h-screen">
+      <Layout style={{ marginLeft: 240 }}>
         <AdminHeader />
-        <main className="flex-1 p-6">{children}</main>
-      </div>
-    </div>
+        <Content
+          style={{
+            margin: '24px',
+            padding: '24px',
+            background: '#fff',
+            borderRadius: '12px',
+            minHeight: 'calc(100vh - 88px)',
+          }}
+        >
+          {children}
+        </Content>
+      </Layout>
+    </Layout>
   )
 }
 

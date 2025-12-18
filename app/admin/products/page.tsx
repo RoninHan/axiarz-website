@@ -2,9 +2,34 @@
 
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
-import AdminCard from '@/components/admin/AdminCard'
-import AdminButton from '@/components/admin/AdminButton'
-import Input from '@/components/client/Input'
+import {
+  Table,
+  Button,
+  Space,
+  Tag,
+  Card,
+  Row,
+  Col,
+  Statistic,
+  Input,
+  Select,
+  message,
+  Tooltip,
+  Popconfirm,
+  Image,
+} from 'antd'
+import {
+  PlusOutlined,
+  EditOutlined,
+  DeleteOutlined,
+  InboxOutlined,
+  ShoppingCartOutlined,
+  CloseCircleOutlined,
+  SearchOutlined,
+  ReloadOutlined,
+  EyeOutlined,
+} from '@ant-design/icons'
+import type { ColumnsType } from 'antd/es/table'
 import { Product } from '@/types'
 
 interface Category {
@@ -18,17 +43,19 @@ export default function ProductsPage() {
   const [categories, setCategories] = useState<Category[]>([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
-  const [category, setCategory] = useState('')
-  const [status, setStatus] = useState('')
+  const [categoryFilter, setCategoryFilter] = useState<string>('')
+  const [statusFilter, setStatusFilter] = useState<string>('')
 
   useEffect(() => {
     fetchCategories()
     fetchProducts()
-  }, [category, status])
+  }, [])
 
   async function fetchCategories() {
     try {
-      const res = await fetch('/api/admin/categories')
+      const res = await fetch('/api/admin/categories', {
+        credentials: 'include',
+      })
       const data = await res.json()
       if (data.success) {
         setCategories(data.data.filter((c: Category) => c.status === 'active'))
@@ -43,132 +70,263 @@ export default function ProductsPage() {
       setLoading(true)
       const params = new URLSearchParams()
       if (search) params.append('search', search)
-      if (category) params.append('category', category)
-      if (status) params.append('status', status)
+      if (categoryFilter) params.append('category', categoryFilter)
+      if (statusFilter) params.append('status', statusFilter)
 
-      const res = await fetch(`/api/admin/products?${params}`)
+      const res = await fetch(`/api/admin/products?${params}`, {
+        credentials: 'include',
+      })
       const data = await res.json()
       if (data.success) {
         setProducts(data.data)
       }
     } catch (error) {
       console.error('获取产品失败:', error)
+      message.error('获取产品列表失败')
     } finally {
       setLoading(false)
     }
   }
 
+  function handleSearch(value: string) {
+    setSearch(value)
+    fetchProducts()
+  }
+
   async function deleteProduct(id: string) {
-    if (!confirm('确定要删除这个产品吗？')) return
     try {
       const res = await fetch(`/api/admin/products/${id}`, {
         method: 'DELETE',
+        credentials: 'include',
       })
       const data = await res.json()
       if (data.success) {
+        message.success('产品删除成功')
         await fetchProducts()
       } else {
-        alert(data.error || '删除失败')
+        message.error(data.error || '删除失败')
       }
     } catch (error) {
       console.error('删除产品失败:', error)
-      alert('删除失败')
+      message.error('删除失败')
     }
   }
 
+  const getStatusTag = (status: string) => {
+    const statusMap = {
+      active: { color: 'success', text: '在售', icon: <ShoppingCartOutlined /> },
+      inactive: { color: 'default', text: '下架', icon: <CloseCircleOutlined /> },
+      sold_out: { color: 'error', text: '缺货', icon: <CloseCircleOutlined /> },
+    }
+    const config = statusMap[status as keyof typeof statusMap] || statusMap.inactive
+    return (
+      <Tag icon={config.icon} color={config.color}>
+        {config.text}
+      </Tag>
+    )
+  }
+
+  const columns: ColumnsType<Product> = [
+    {
+      title: '产品图片',
+      dataIndex: 'images',
+      key: 'images',
+      width: 100,
+      render: (images: string[]) =>
+        images && images.length > 0 ? (
+          <Image
+            src={images[0]}
+            alt="产品图片"
+            width={60}
+            height={60}
+            style={{ objectFit: 'cover', borderRadius: '4px' }}
+          />
+        ) : (
+          <div
+            style={{
+              width: 60,
+              height: 60,
+              background: '#f0f0f0',
+              borderRadius: '4px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}
+          >
+            <InboxOutlined style={{ fontSize: 24, color: '#999' }} />
+          </div>
+        ),
+    },
+    {
+      title: '产品名称',
+      dataIndex: 'name',
+      key: 'name',
+      width: 200,
+      render: (name: string) => <span style={{ fontWeight: 500 }}>{name}</span>,
+    },
+    {
+      title: '分类',
+      dataIndex: 'category',
+      key: 'category',
+      width: 120,
+      render: (category: any) => (
+        <Tag color="blue">{category?.name || '未分类'}</Tag>
+      ),
+    },
+    {
+      title: '价格',
+      dataIndex: 'price',
+      key: 'price',
+      width: 120,
+      sorter: (a, b) => Number(a.price) - Number(b.price),
+      render: (price: number) => (
+        <span style={{ color: '#667eea', fontWeight: 500 }}>
+          ¥{Number(price).toFixed(2)}
+        </span>
+      ),
+    },
+    {
+      title: '库存',
+      dataIndex: 'stock',
+      key: 'stock',
+      width: 100,
+      sorter: (a, b) => a.stock - b.stock,
+      render: (stock: number) => (
+        <Tag color={stock > 10 ? 'success' : stock > 0 ? 'warning' : 'error'}>
+          {stock}
+        </Tag>
+      ),
+    },
+    {
+      title: '状态',
+      dataIndex: 'status',
+      key: 'status',
+      width: 100,
+      filters: [
+        { text: '在售', value: 'active' },
+        { text: '下架', value: 'inactive' },
+        { text: '缺货', value: 'sold_out' },
+      ],
+      onFilter: (value, record) => record.status === value,
+      render: (status: string) => getStatusTag(status),
+    },
+    {
+      title: '创建时间',
+      dataIndex: 'createdAt',
+      key: 'createdAt',
+      width: 180,
+      render: (date: Date) => new Date(date).toLocaleString('zh-CN'),
+    },
+    {
+      title: '操作',
+      key: 'action',
+      width: 180,
+      fixed: 'right',
+      render: (_, record) => (
+        <Space>
+          <Tooltip title="查看">
+            <Link href={`/products/${record.id}`} target="_blank">
+              <Button type="text" icon={<EyeOutlined />} size="small" />
+            </Link>
+          </Tooltip>
+          <Tooltip title="编辑">
+            <Link href={`/admin/products/${record.id}`}>
+              <Button type="primary" icon={<EditOutlined />} size="small" />
+            </Link>
+          </Tooltip>
+          <Popconfirm
+            title="删除产品"
+            description="确定要删除这个产品吗？"
+            onConfirm={() => deleteProduct(record.id)}
+            okText="确定"
+            cancelText="取消"
+            okButtonProps={{ danger: true }}
+          >
+            <Tooltip title="删除">
+              <Button type="primary" danger icon={<DeleteOutlined />} size="small" />
+            </Tooltip>
+          </Popconfirm>
+        </Space>
+      ),
+    },
+  ]
+
   return (
     <div>
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-title-large font-title">产品管理</h1>
-        <Link href="/admin/products/new">
-          <AdminButton variant="primary">新增产品</AdminButton>
-        </Link>
-      </div>
+      {/* 搜索和筛选 */}
+      <Card style={{ marginBottom: 24 }}>
+        <Space style={{ width: '100%', justifyContent: 'space-between' }}>
+          <Space>
+            <Input.Search
+              placeholder="搜索产品名称、SKU..."
+              allowClear
+              enterButton
+              style={{ width: 300 }}
+              onSearch={handleSearch}
+              onChange={(e) => setSearch(e.target.value)}
+            />
+            <Select
+              placeholder="筛选分类"
+              style={{ width: 150 }}
+              allowClear
+              value={categoryFilter || undefined}
+              onChange={(value) => {
+                setCategoryFilter(value || '')
+                fetchProducts()
+              }}
+            >
+              <Select.Option value="">所有分类</Select.Option>
+              {categories.map((cat) => (
+                <Select.Option key={cat.id} value={cat.id}>
+                  {cat.name}
+                </Select.Option>
+              ))}
+            </Select>
+            <Select
+              placeholder="筛选状态"
+              style={{ width: 150 }}
+              allowClear
+              value={statusFilter || undefined}
+              onChange={(value) => {
+                setStatusFilter(value || '')
+                fetchProducts()
+              }}
+            >
+              <Select.Option value="">全部状态</Select.Option>
+              <Select.Option value="active">在售</Select.Option>
+              <Select.Option value="inactive">下架</Select.Option>
+              <Select.Option value="sold_out">缺货</Select.Option>
+            </Select>
+          </Space>
+          <Space>
+            <Button icon={<ReloadOutlined />} onClick={fetchProducts}>
+              刷新
+            </Button>
+            <Link href="/admin/products/new">
+              <Button type="primary" icon={<PlusOutlined />}>
+                新增产品
+              </Button>
+            </Link>
+          </Space>
+        </Space>
+      </Card>
 
-      <AdminCard>
-        <div className="flex gap-4 mb-6">
-          <Input
-            placeholder="搜索产品..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="flex-1"
-          />
-          <select
-            className="input"
-            value={category}
-            onChange={(e) => setCategory(e.target.value)}
-          >
-            <option value="">所有分类</option>
-            {categories.map((cat) => (
-              <option key={cat.id} value={cat.id}>
-                {cat.name}
-              </option>
-            ))}
-          </select>
-          <select
-            className="input"
-            value={status}
-            onChange={(e) => setStatus(e.target.value)}
-          >
-            <option value="">全部状态</option>
-            <option value="active">在售</option>
-            <option value="inactive">下架</option>
-            <option value="sold_out">缺货</option>
-          </select>
-          <AdminButton onClick={fetchProducts}>搜索</AdminButton>
-        </div>
-
-        {loading ? (
-          <div className="text-center py-12">加载中...</div>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead>
-                <tr className="border-b border-neutral-medium">
-                  <th className="text-left py-3 px-4 text-body font-medium">产品名称</th>
-                  <th className="text-left py-3 px-4 text-body font-medium">分类</th>
-                  <th className="text-left py-3 px-4 text-body font-medium">价格</th>
-                  <th className="text-left py-3 px-4 text-body font-medium">库存</th>
-                  <th className="text-left py-3 px-4 text-body font-medium">状态</th>
-                  <th className="text-left py-3 px-4 text-body font-medium">操作</th>
-                </tr>
-              </thead>
-              <tbody>
-                {products.map((product) => (
-                  <tr key={product.id} className="border-b border-neutral-medium">
-                    <td className="py-3 px-4 text-body">{product.name}</td>
-                    <td className="py-3 px-4 text-body">{product.category?.name || '-'}</td>
-                    <td className="py-3 px-4 text-body">¥{Number(product.price).toFixed(2)}</td>
-                    <td className="py-3 px-4 text-body">{product.stock}</td>
-                    <td className="py-3 px-4 text-body">
-                      <span className={
-                        product.status === 'active' ? 'text-green-600' :
-                        product.status === 'sold_out' ? 'text-red-600' : 'text-neutral-medium'
-                      }>
-                        {product.status === 'active' ? '在售' :
-                         product.status === 'sold_out' ? '缺货' : '下架'}
-                      </span>
-                    </td>
-                    <td className="py-3 px-4">
-                      <div className="flex gap-2">
-                        <Link href={`/admin/products/${product.id}`}>
-                          <AdminButton variant="secondary">编辑</AdminButton>
-                        </Link>
-                        <AdminButton
-                          variant="danger"
-                          onClick={() => deleteProduct(product.id)}
-                        >
-                          删除
-                        </AdminButton>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </AdminCard>
+      {/* 产品表格 */}
+      <Card>
+        <Table
+          columns={columns}
+          dataSource={products}
+          rowKey="id"
+          loading={loading}
+          pagination={{
+            pageSize: 10,
+            showSizeChanger: true,
+            showQuickJumper: true,
+            showTotal: (total) => `共 ${total} 条记录`,
+          }}
+          scroll={{ x: 1400 }}
+        />
+      </Card>
     </div>
   )
 }

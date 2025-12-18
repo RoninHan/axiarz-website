@@ -154,7 +154,9 @@ async function main() {
   const sampleProducts = [
     {
       name: '科技产品 A',
+      sku: 'TECH-A-001',
       description: '这是一款高性能的科技产品，采用最新技术，性能卓越。',
+      content: '<h2>产品详情</h2><p>这是一款采用最新技术的高性能科技产品，具有以下特点：</p><ul><li>高性能处理器</li><li>超长续航</li><li>智能AI功能</li><li>精美外观设计</li></ul><p>适用于专业人士和科技爱好者。</p>',
       price: 999.00,
       stock: 100,
       image: '/images/product-1.jpg',
@@ -165,7 +167,9 @@ async function main() {
     },
     {
       name: '科技产品 B',
+      sku: 'TECH-B-002',
       description: '创新设计，智能便捷，满足您的各种需求。',
+      content: '<h2>产品介绍</h2><p>创新设计的智能设备，为您的生活带来便利：</p><ul><li>智能语音控制</li><li>多设备联动</li><li>远程管理</li><li>节能环保</li></ul>',
       price: 1299.00,
       stock: 50,
       image: '/images/product-2.jpg',
@@ -176,7 +180,9 @@ async function main() {
     },
     {
       name: '科技产品 C',
+      sku: 'TECH-C-003',
       description: '高品质材料，精湛工艺，值得信赖。',
+      content: '<h2>产品特色</h2><p>采用高品质材料制作，经过严格的质量检测：</p><ul><li>耐用材质</li><li>精密工艺</li><li>完美兼容</li><li>品质保证</li></ul>',
       price: 799.00,
       stock: 80,
       image: '/images/product-3.jpg',

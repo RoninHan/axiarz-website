@@ -12,6 +12,19 @@
     font-family: 'Microsoft YaHei', sans-serif;
   }
 
+  /* 移除链接默认样式 */
+  a {
+    @apply text-inherit no-underline;
+  }
+
+  a:hover {
+    @apply text-inherit;
+  }
+
+  a:visited {
+    @apply text-inherit;
+  }
+
   h1 {
     @apply text-title-large font-title;
   }
@@ -73,5 +86,51 @@
   .label {
     @apply block text-body font-medium mb-2;
   }
+}
+
+/* Rich Text Editor (Quill) 样式优化 */
+.rich-text-editor .ql-toolbar {
+  border: 1px solid #e5e7eb;
+  border-radius: 8px 8px 0 0;
+  background: #f9fafb;
+}
+
+.rich-text-editor .ql-container {
+  border: 1px solid #e5e7eb;
+  border-top: none;
+  border-radius: 0 0 8px 8px;
+  font-size: 16px;
+  font-family: 'Microsoft YaHei', sans-serif;
+}
+
+.rich-text-editor .ql-editor {
+  min-height: 400px;
+  max-height: 600px;
+  overflow-y: auto;
+}
+
+.rich-text-editor .ql-editor.ql-blank::before {
+  color: #9ca3af;
+  font-style: normal;
+}
+
+/* 后台管理搜索按钮橙色主题 */
+.ant-input-search-button {
+  background: linear-gradient(135deg, #f97316 0%, #fb923c 100%) !important;
+  border-color: #f97316 !important;
+}
+
+.ant-input-search-button:hover {
+  background: linear-gradient(135deg, #ea580c 0%, #f97316 100%) !important;
+  border-color: #ea580c !important;
+}
+
+/* 导航栏用户下拉按钮样式 */
+.ant-btn.ant-btn-text:hover,
+.ant-btn.ant-btn-text:focus,
+.ant-btn.ant-btn-text:active,
+.ant-dropdown-open .ant-btn.ant-btn-text:hover {
+  background-color: white !important;
+  color: #000 !important;
 }
 

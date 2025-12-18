@@ -11,7 +11,7 @@ export default function ClientLayout({
 }) {
   return (
     <AuthProvider>
-      <div className="min-h-screen flex flex-col">
+      <div className="min-h-screen flex flex-col" style={{ backgroundColor: '#2D2D2D' }}>
         <ClientNavbar />
         <main className="flex-grow">{children}</main>
         <ClientFooter />

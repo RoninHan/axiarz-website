@@ -40,7 +40,7 @@ export async function PATCH(
     }
 
     const data = await request.json()
-    const { name, description, price, stock, image, images, categoryId, status, featured } = data
+    const { name, sku, description, content, price, stock, image, images, categoryId, status, featured } = data
 
     const product = await prisma.product.findUnique({
       where: { id: params.id },
@@ -50,11 +50,23 @@ export async function PATCH(
       return errorResponse('产品不存在', 404)
     }
 
+    // Check if SKU already exists (excluding current product)
+    if (sku && sku !== product.sku) {
+      const existingProduct = await prisma.product.findUnique({
+        where: { sku },
+      })
+      if (existingProduct) {
+        return errorResponse('产品编号已存在')
+      }
+    }
+
     const updated = await prisma.product.update({
       where: { id: params.id },
       data: {
         name,
+        sku: sku !== undefined ? (sku || null) : undefined,
         description,
+        content: content !== undefined ? content : undefined,
         price,
         stock: stock !== undefined ? parseInt(stock) : undefined,
         image,

@@ -11,15 +11,17 @@ datasource db {
 }
 
 model User {
-  id        String   @id @default(uuid())
-  email     String   @unique
-  name      String?
-  password  String
-  phone     String?
-  avatar    String?
-  status    String   @default("active") // active, disabled
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id               String    @id @default(uuid())
+  email            String    @unique
+  name             String?
+  password         String
+  phone            String?
+  avatar           String?
+  status           String    @default("active") // active, disabled
+  resetToken       String?   // 密码重置令牌哈希
+  resetTokenExpiry DateTime? // 令牌过期时间
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
 
   addresses Address[]
   orders    Order[]
@@ -88,7 +90,9 @@ model Category {
 model Product {
   id          String   @id @default(uuid())
   name        String
+  sku         String?  @unique // 产品编号
   description String?  @db.Text
+  content     String?  @db.Text // 详细介绍（富文本）
   price       Decimal  @db.Decimal(10, 2)
   stock       Int      @default(0)
   image       String?
@@ -214,4 +218,38 @@ model Setting {
   updatedAt DateTime @updatedAt
 
   @@map("settings")
+}
+
+// 解决方案
+model Solution {
+  id          String   @id @default(uuid())
+  title       String   // 方案标题
+  slug        String   @unique // URL友好标识
+  description String?  @db.Text // 简短描述
+  content     String   @db.Text // 富文本内容（HTML）
+  coverImage  String?  // 封面图片
+  status      String   @default("draft") // draft, published
+  sortOrder   Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("solutions")
+}
+
+// 帮助中心文章
+model HelpArticle {
+  id          String   @id @default(uuid())
+  title       String   // 文章标题
+  slug        String   @unique // URL友好标识
+  category    String   // 分类：faq, guide, tutorial, troubleshooting
+  content     String   @db.Text // 富文本内容（HTML）
+  excerpt     String?  @db.Text // 摘要
+  status      String   @default("draft") // draft, published
+  sortOrder   Int      @default(0)
+  viewCount   Int      @default(0) // 浏览次数
+  featured    Boolean  @default(false) // 是否精选
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("help_articles")
 }

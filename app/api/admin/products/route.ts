@@ -53,16 +53,28 @@ export async function POST(request: NextRequest) {
     }
 
     const data = await request.json()
-    const { name, description, price, stock, image, images, categoryId, status, featured } = data
+    const { name, sku, description, content, price, stock, image, images, categoryId, status, featured } = data
 
     if (!name || !price || stock === undefined) {
       return errorResponse('请填写完整产品信息')
     }
 
+    // Check if SKU already exists
+    if (sku) {
+      const existingProduct = await prisma.product.findUnique({
+        where: { sku },
+      })
+      if (existingProduct) {
+        return errorResponse('产品编号已存在')
+      }
+    }
+
     const product = await prisma.product.create({
       data: {
         name,
+        sku: sku || null,
         description: description || null,
+        content: content || null,
         price,
         stock: parseInt(stock),
         image: image || null,

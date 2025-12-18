@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { message } from 'antd'
 import Button from '@/components/client/Button'
 import Card from '@/components/client/Card'
 import Input from '@/components/client/Input'
@@ -16,6 +17,7 @@ function CheckoutPageContent() {
   const [selectedPayment, setSelectedPayment] = useState<string>('')
   const [loading, setLoading] = useState(true)
   const [submitting, setSubmitting] = useState(false)
+  const [messageApi, contextHolder] = message.useMessage()
 
   useEffect(() => {
     fetchAddresses()
@@ -60,11 +62,11 @@ function CheckoutPageContent() {
 
   async function handleSubmit() {
     if (!selectedAddressId) {
-      alert('请选择收货地址')
+      messageApi.warning('请选择收货地址')
       return
     }
     if (!selectedPayment) {
-      alert('请选择支付方式')
+      messageApi.warning('请选择支付方式')
       return
     }
 
@@ -80,13 +82,14 @@ function CheckoutPageContent() {
       })
       const data = await res.json()
       if (data.success) {
-        router.push(`/orders/${data.data.id}`)
+        messageApi.success('订单创建成功')
+        setTimeout(() => router.push(`/orders/${data.data.id}`), 1000)
       } else {
-        alert(data.error || '创建订单失败')
+        messageApi.error(data.error || '创建订单失败')
       }
     } catch (error) {
       console.error('创建订单失败:', error)
-      alert('创建订单失败')
+      messageApi.error('创建订单失败')
     } finally {
       setSubmitting(false)
     }
@@ -99,6 +102,7 @@ function CheckoutPageContent() {
   if (paymentMethods.length === 0) {
     return (
       <div className="container mx-auto px-6 py-12 max-w-[1920px]">
+        {contextHolder}
         <Card className="text-center py-12">
           <p className="text-body text-neutral-medium mb-4">暂未开放支付功能</p>
           <Button variant="outline" onClick={() => router.back()}>返回</Button>
@@ -109,6 +113,7 @@ function CheckoutPageContent() {
 
   return (
     <div className="container mx-auto px-6 py-12 max-w-[1920px]">
+      {contextHolder}
       <h1 className="text-title-large font-title mb-8">结算</h1>
 
       <div className="grid grid-cols-3 gap-8">

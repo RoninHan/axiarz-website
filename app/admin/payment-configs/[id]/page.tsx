@@ -2,19 +2,43 @@
 
 import { useEffect, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
-import AdminCard from '@/components/admin/AdminCard'
-import AdminButton from '@/components/admin/AdminButton'
-import Input from '@/components/client/Input'
-import Textarea from '@/components/client/Textarea'
+import {
+  Form,
+  Input,
+  InputNumber,
+  Button,
+  Card,
+  Space,
+  Switch,
+  message,
+  Spin,
+  Select,
+  Row,
+  Col,
+  Divider,
+  Tag,
+  Alert,
+} from 'antd'
+import {
+  ArrowLeftOutlined,
+  SaveOutlined,
+  AlipayOutlined,
+  WechatOutlined,
+  PayCircleOutlined,
+  LockOutlined,
+  SettingOutlined,
+} from '@ant-design/icons'
 import { PaymentConfig } from '@/types'
+
+const { TextArea } = Input
 
 export default function PaymentConfigDetailPage() {
   const params = useParams()
   const router = useRouter()
+  const [form] = Form.useForm()
   const [config, setConfig] = useState<PaymentConfig | null>(null)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
-  const [formData, setFormData] = useState<any>({})
 
   useEffect(() => {
     if (params.id) {
@@ -25,11 +49,13 @@ export default function PaymentConfigDetailPage() {
   async function fetchConfig(id: string) {
     try {
       setLoading(true)
-      const res = await fetch(`/api/admin/payment-configs/${id}`)
+      const res = await fetch(`/api/admin/payment-configs/${id}`, {
+        credentials: 'include',
+      })
       const data = await res.json()
       if (data.success) {
         setConfig(data.data)
-        setFormData({
+        form.setFieldsValue({
           displayName: data.data.displayName,
           enabled: data.data.enabled,
           sortOrder: data.data.sortOrder,
@@ -38,40 +64,68 @@ export default function PaymentConfigDetailPage() {
       }
     } catch (error) {
       console.error('获取支付配置失败:', error)
+      message.error('获取支付配置失败')
     } finally {
       setLoading(false)
     }
   }
 
-  async function handleSubmit() {
+  async function handleSubmit(values: any) {
     if (!config) return
 
     try {
       setSaving(true)
-      const { displayName, enabled, sortOrder, ...configData } = formData
+      const { displayName, enabled, sortOrder, ...configData } = values
 
       const res = await fetch(`/api/admin/payment-configs/${config.id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
         body: JSON.stringify({
           displayName,
           enabled,
-          sortOrder: parseInt(sortOrder) || 0,
+          sortOrder,
           config: configData,
         }),
       })
       const data = await res.json()
       if (data.success) {
-        alert('保存成功')
-        router.push('/admin/payment-configs')
+        message.success('保存成功')
+        setTimeout(() => router.push('/admin/payment-configs'), 1000)
       } else {
-        alert(data.error || '保存失败')
+        message.error(data.error || '保存失败')
       }
     } catch (error) {
       console.error('保存支付配置失败:', error)
-      alert('保存失败')
+      message.error('保存失败')
     } finally {
       setSaving(false)
+    }
+  }
+
+  function getPaymentIcon(name: string) {
+    switch (name) {
+      case 'alipay':
+        return <AlipayOutlined style={{ fontSize: 32, color: '#1677ff' }} />
+      case 'wechat':
+        return <WechatOutlined style={{ fontSize: 32, color: '#07c160' }} />
+      case 'paypal':
+        return <PayCircleOutlined style={{ fontSize: 32, color: '#003087' }} />
+      default:
+        return <PayCircleOutlined style={{ fontSize: 32, color: '#666' }} />
+    }
+  }
+
+  function getPaymentColor(name: string) {
+    switch (name) {
+      case 'alipay':
+        return '#1677ff'
+      case 'wechat':
+        return '#07c160'
+      case 'paypal':
+        return '#003087'
+      default:
+        return '#666'
     }
   }
 
@@ -82,155 +136,266 @@ export default function PaymentConfigDetailPage() {
       case 'alipay':
         return (
           <>
-            <Input
+            <Alert
+              message="支付宝支付配置"
+              description="请在支付宝开放平台获取相关配置信息"
+              type="info"
+              showIcon
+              style={{ marginBottom: 24 }}
+            />
+            <Form.Item
               label="AppID"
-              value={formData.appId || ''}
-              onChange={(e) => setFormData({ ...formData, appId: e.target.value })}
-            />
-            <Textarea
+              name="appId"
+              rules={[{ required: true, message: '请输入 AppID' }]}
+            >
+              <Input placeholder="请输入支付宝 AppID" />
+            </Form.Item>
+            <Form.Item
               label="商户私钥"
-              value={formData.privateKey || ''}
-              onChange={(e) => setFormData({ ...formData, privateKey: e.target.value })}
-              rows={4}
-            />
-            <Textarea
+              name="privateKey"
+              rules={[{ required: true, message: '请输入商户私钥' }]}
+            >
+              <TextArea
+                rows={4}
+                placeholder="请输入商户私钥"
+                prefix={<LockOutlined />}
+              />
+            </Form.Item>
+            <Form.Item
               label="支付宝公钥"
-              value={formData.publicKey || ''}
-              onChange={(e) => setFormData({ ...formData, publicKey: e.target.value })}
-              rows={4}
-            />
-            <Input
+              name="publicKey"
+              rules={[{ required: true, message: '请输入支付宝公钥' }]}
+            >
+              <TextArea
+                rows={4}
+                placeholder="请输入支付宝公钥"
+              />
+            </Form.Item>
+            <Form.Item
               label="网关地址"
-              value={formData.gateway || 'https://openapi.alipay.com/gateway.do'}
-              onChange={(e) => setFormData({ ...formData, gateway: e.target.value })}
-            />
+              name="gateway"
+              initialValue="https://openapi.alipay.com/gateway.do"
+            >
+              <Input placeholder="https://openapi.alipay.com/gateway.do" />
+            </Form.Item>
           </>
         )
       case 'wechat':
         return (
           <>
-            <Input
+            <Alert
+              message="微信支付配置"
+              description="请在微信支付商户平台获取相关配置信息"
+              type="info"
+              showIcon
+              style={{ marginBottom: 24 }}
+            />
+            <Form.Item
               label="AppID"
-              value={formData.appId || ''}
-              onChange={(e) => setFormData({ ...formData, appId: e.target.value })}
-            />
-            <Input
+              name="appId"
+              rules={[{ required: true, message: '请输入 AppID' }]}
+            >
+              <Input placeholder="请输入微信 AppID" />
+            </Form.Item>
+            <Form.Item
               label="商户号 (MchID)"
-              value={formData.mchId || ''}
-              onChange={(e) => setFormData({ ...formData, mchId: e.target.value })}
-            />
-            <Input
+              name="mchId"
+              rules={[{ required: true, message: '请输入商户号' }]}
+            >
+              <Input placeholder="请输入商户号" />
+            </Form.Item>
+            <Form.Item
               label="API 密钥"
-              value={formData.apiKey || ''}
-              onChange={(e) => setFormData({ ...formData, apiKey: e.target.value })}
-            />
-            <Input
+              name="apiKey"
+              rules={[{ required: true, message: '请输入 API 密钥' }]}
+            >
+              <Input.Password placeholder="请输入 API 密钥" />
+            </Form.Item>
+            <Form.Item
               label="通知地址"
-              value={formData.notifyUrl || ''}
-              onChange={(e) => setFormData({ ...formData, notifyUrl: e.target.value })}
-            />
+              name="notifyUrl"
+            >
+              <Input placeholder="支付回调通知地址" />
+            </Form.Item>
           </>
         )
       case 'paypal':
         return (
           <>
-            <Input
+            <Alert
+              message="PayPal 支付配置"
+              description="请在 PayPal 开发者平台获取相关配置信息"
+              type="info"
+              showIcon
+              style={{ marginBottom: 24 }}
+            />
+            <Form.Item
               label="Client ID"
-              value={formData.clientId || ''}
-              onChange={(e) => setFormData({ ...formData, clientId: e.target.value })}
-            />
-            <Input
-              label="Client Secret"
-              value={formData.clientSecret || ''}
-              onChange={(e) => setFormData({ ...formData, clientSecret: e.target.value })}
-            />
-            <select
-              className="input"
-              value={formData.mode || 'sandbox'}
-              onChange={(e) => setFormData({ ...formData, mode: e.target.value })}
+              name="clientId"
+              rules={[{ required: true, message: '请输入 Client ID' }]}
             >
-              <option value="sandbox">沙箱环境</option>
-              <option value="live">生产环境</option>
-            </select>
+              <Input placeholder="请输入 Client ID" />
+            </Form.Item>
+            <Form.Item
+              label="Client Secret"
+              name="clientSecret"
+              rules={[{ required: true, message: '请输入 Client Secret' }]}
+            >
+              <Input.Password placeholder="请输入 Client Secret" />
+            </Form.Item>
+            <Form.Item
+              label="运行模式"
+              name="mode"
+              initialValue="sandbox"
+              rules={[{ required: true, message: '请选择运行模式' }]}
+            >
+              <Select>
+                <Select.Option value="sandbox">沙箱环境</Select.Option>
+                <Select.Option value="live">生产环境</Select.Option>
+              </Select>
+            </Form.Item>
           </>
         )
       default:
-        return (
-          <Textarea
-            label="配置参数 (JSON格式)"
-            value={JSON.stringify(formData, null, 2)}
-            onChange={(e) => {
-              try {
-                setFormData(JSON.parse(e.target.value))
-              } catch (error) {
-                // 忽略解析错误
-              }
-            }}
-            rows={10}
-          />
-        )
+        return null
     }
   }
 
   if (loading) {
-    return <div className="text-center py-12">加载中...</div>
+    return (
+      <div style={{ textAlign: 'center', padding: '100px 0' }}>
+        <Spin size="large" tip="加载中..." />
+      </div>
+    )
   }
 
   if (!config) {
-    return <div className="text-center py-12">支付配置不存在</div>
+    return (
+      <Card>
+        <div style={{ textAlign: 'center', padding: '50px 0' }}>
+          <p style={{ fontSize: 16, color: '#999' }}>支付配置不存在</p>
+          <Button onClick={() => router.push('/admin/payment-configs')} style={{ marginTop: 16 }}>
+            返回列表
+          </Button>
+        </div>
+      </Card>
+    )
   }
 
   return (
     <div>
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-title-large font-title">配置 {config.displayName}</h1>
-        <AdminButton variant="secondary" onClick={() => router.back()}>
-          返回
-        </AdminButton>
-      </div>
-
-      <AdminCard>
-        <div className="space-y-4">
-          <Input
-            label="显示名称"
-            value={formData.displayName || ''}
-            onChange={(e) => setFormData({ ...formData, displayName: e.target.value })}
-          />
-          <Input
-            label="排序顺序"
-            type="number"
-            value={formData.sortOrder || 0}
-            onChange={(e) => setFormData({ ...formData, sortOrder: e.target.value })}
-          />
-          <div className="flex items-center">
-            <input
-              type="checkbox"
-              id="enabled"
-              checked={formData.enabled || false}
-              onChange={(e) => setFormData({ ...formData, enabled: e.target.checked })}
-              className="mr-2"
-            />
-            <label htmlFor="enabled" className="text-body">启用此支付方式</label>
-          </div>
-
-          <div className="border-t border-neutral-medium pt-4 mt-4">
-            <h3 className="text-title-small font-title mb-4">支付参数配置</h3>
-            <div className="space-y-4">
-              {renderConfigFields()}
+      {/* 页面标题 */}
+      <Card style={{ marginBottom: 24 }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <Space size="large">
+            {getPaymentIcon(config.name)}
+            <div>
+              <h1 style={{ margin: 0, fontSize: 24, fontWeight: 600 }}>
+                配置 {config.displayName}
+              </h1>
+              <p style={{ margin: '8px 0 0', color: '#666' }}>
+                <Tag color={config.enabled ? 'success' : 'default'}>
+                  {config.enabled ? '已启用' : '未启用'}
+                </Tag>
+                <span style={{ marginLeft: 8 }}>支付方式配置</span>
+              </p>
             </div>
-          </div>
-
-          <div className="flex gap-4 pt-4">
-            <AdminButton variant="primary" onClick={handleSubmit} disabled={saving}>
-              {saving ? '保存中...' : '保存配置'}
-            </AdminButton>
-            <AdminButton variant="secondary" onClick={() => router.back()}>
-              取消
-            </AdminButton>
-          </div>
+          </Space>
+          <Button
+            icon={<ArrowLeftOutlined />}
+            onClick={() => router.back()}
+          >
+            返回
+          </Button>
         </div>
-      </AdminCard>
+      </Card>
+
+      {/* 表单区域 */}
+      <Form
+        form={form}
+        layout="vertical"
+        onFinish={handleSubmit}
+      >
+        <Row gutter={24}>
+          {/* 左侧：配置参数 */}
+          <Col span={16}>
+            <Card 
+              title={
+                <Space>
+                  <SettingOutlined />
+                  支付参数配置
+                </Space>
+              }
+              style={{ marginBottom: 24 }}
+            >
+              {renderConfigFields()}
+            </Card>
+          </Col>
+
+          {/* 右侧：基本设置 */}
+          <Col span={8}>
+            <Card title="基本设置" style={{ marginBottom: 24 }}>
+              <Form.Item
+                label="显示名称"
+                name="displayName"
+                rules={[{ required: true, message: '请输入显示名称' }]}
+              >
+                <Input placeholder="请输入显示名称" />
+              </Form.Item>
+
+              <Form.Item
+                label="排序顺序"
+                name="sortOrder"
+                extra="数字越小越靠前"
+              >
+                <InputNumber
+                  style={{ width: '100%' }}
+                  min={0}
+                  placeholder="0"
+                />
+              </Form.Item>
+
+              <Form.Item
+                label="启用状态"
+                name="enabled"
+                valuePropName="checked"
+              >
+                <Switch
+                  checkedChildren="已启用"
+                  unCheckedChildren="未启用"
+                />
+              </Form.Item>
+            </Card>
+
+            <Card>
+              <Space style={{ width: '100%' }} direction="vertical" size="middle">
+                <Button
+                  type="primary"
+                  icon={<SaveOutlined />}
+                  htmlType="submit"
+                  loading={saving}
+                  size="large"
+                  block
+                  style={{
+                    background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                    border: 'none',
+                  }}
+                >
+                  {saving ? '保存中...' : '保存配置'}
+                </Button>
+                <Button
+                  icon={<ArrowLeftOutlined />}
+                  onClick={() => router.back()}
+                  size="large"
+                  block
+                >
+                  取消
+                </Button>
+              </Space>
+            </Card>
+          </Col>
+        </Row>
+      </Form>
     </div>
   )
 }
-
