@@ -1,4 +1,4 @@
-import prisma from '@/lib/prisma'
+import { prisma } from '@/lib/prisma'
 import nodemailer from 'nodemailer'
 import crypto from 'crypto'
 
@@ -58,6 +58,10 @@ async function getEmailConfig(): Promise<EmailConfig | null> {
     })
 
     if (!setting || !setting.value) {
+      return null
+    }
+
+    if (typeof setting.value !== 'string') {
       return null
     }
 

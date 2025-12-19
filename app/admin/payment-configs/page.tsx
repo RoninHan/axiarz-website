@@ -188,7 +188,7 @@ export default function PaymentConfigsPage() {
           <div>
             <div style={{ fontWeight: 600, marginBottom: 4 }}>配置提示</div>
             <div style={{ fontSize: 14, color: '#666' }}>
-              点击"配置"按钮可以设置每个支付方式的详细参数。排序顺序决定了支付方式在前台的显示顺序，数字越小越靠前。
+              点击&quot;配置&quot;按钮可以设置每个支付方式的详细参数。排序顺序决定了支付方式在前台的显示顺序，数字越小越靠前。
             </div>
           </div>
         </Space>

@@ -415,7 +415,7 @@ export default function EmailSettingsPage() {
                 <div style={{ marginLeft: '16px', marginTop: '8px' }}>
                   <Text type="secondary">服务器: smtp.gmail.com</Text><br/>
                   <Text type="secondary">端口: 587 (TLS) 或 465 (SSL)</Text><br/>
-                  <Text type="secondary">需要在 Google 账号中启用"两步验证"并生成"应用专用密码"</Text>
+                  <Text type="secondary">需要在 Google 账号中启用&quot;两步验证&quot;并生成&quot;应用专用密码&quot;</Text>
                 </div>
               </div>
 

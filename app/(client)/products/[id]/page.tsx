@@ -75,7 +75,7 @@ export default function ProductDetailPage() {
     }
   }
 
-  async function fetchRelatedProducts(categoryId: number, productId: number) {
+  async function fetchRelatedProducts(categoryId: number, productId: string) {
     try {
       const res = await fetch(`/api/client/products?categoryId=${categoryId}`)
       const data = await res.json()

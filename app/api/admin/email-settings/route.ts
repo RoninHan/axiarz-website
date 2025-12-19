@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import prisma from '@/lib/prisma'
+import { prisma } from '@/lib/prisma'
 import { verifyAdminAuth } from '@/lib/auth'
 import crypto from 'crypto'
 
@@ -45,6 +45,10 @@ export async function GET(request: NextRequest) {
     })
 
     if (!setting || !setting.value) {
+      return NextResponse.json(null)
+    }
+
+    if (typeof setting.value !== 'string') {
       return NextResponse.json(null)
     }
 
@@ -106,7 +110,6 @@ export async function POST(request: NextRequest) {
       create: {
         key: 'email_config',
         value: JSON.stringify(config),
-        description: '邮件服务配置',
       },
       update: {
         value: JSON.stringify(config),

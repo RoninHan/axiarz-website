@@ -153,7 +153,6 @@ export default function EditProductPage() {
   }
 
   return (
-  return (
     <div>
       {/* 页面标题 */}
       <Card style={{ marginBottom: 24 }}>

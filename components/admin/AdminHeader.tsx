@@ -28,7 +28,7 @@ export default function AdminHeader() {
     }
 
     const segments = pathname.split('/').filter(Boolean)
-    const breadcrumbs = [
+    const breadcrumbs: Array<{ title: React.ReactNode; href?: string }> = [
       {
         title: <HomeOutlined />,
         href: '/admin',
@@ -39,7 +39,7 @@ export default function AdminHeader() {
     segments.forEach((segment, index) => {
       currentPath += '/' + segment
       if (index > 0) { // 跳过 'admin'
-        const title = pathMap[currentPath] || segment
+        const title: React.ReactNode = pathMap[currentPath] || segment
         breadcrumbs.push({
           title,
           href: currentPath,

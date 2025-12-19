@@ -188,9 +188,6 @@ export default function ForgotPasswordPage() {
         filter: 'blur(40px)',
         pointerEvents: 'none',
       }} />
-        background: 'radial-gradient(circle, rgba(255,107,53,0.15) 0%, rgba(255,107,53,0) 70%)',
-        filter: 'blur(40px)',
-      }} />
       
       {contextHolder}
       <div className="max-w-md w-full" style={{ position: 'relative', zIndex: 1 }}>

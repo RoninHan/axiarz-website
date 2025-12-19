@@ -72,6 +72,8 @@ COPY --from=builder /app/prisma ./prisma
 COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
 COPY --from=builder /app/node_modules/@prisma ./node_modules/@prisma
 COPY --from=builder /app/node_modules/prisma ./node_modules/prisma
+# 复制 bcryptjs（用于管理脚本）
+COPY --from=builder /app/node_modules/bcryptjs ./node_modules/bcryptjs
 
 # 设置权限
 RUN chown -R nextjs:nodejs /app

@@ -11,7 +11,7 @@ services:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-axiarz_password}
       POSTGRES_DB: ${POSTGRES_DB:-axiarz_db}
     ports:
-      - "${POSTGRES_PORT:-5432}:5432"
+      - "${POSTGRES_PORT:-5433}:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
@@ -24,9 +24,7 @@ services:
 
   # Next.js 应用服务
   app:
-    build:
-      context: .
-      dockerfile: Dockerfile
+    image: roninwin/axiarz-website:latest
     container_name: axiarz-app
     restart: unless-stopped
     ports:

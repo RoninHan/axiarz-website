@@ -22,6 +22,8 @@ import {
   CloseCircleOutlined,
   CarOutlined,
   ReloadOutlined,
+  TruckOutlined,
+  HomeOutlined,
 } from '@ant-design/icons'
 import type { ColumnsType } from 'antd/es/table'
 import { Order } from '@/types'

@@ -158,7 +158,6 @@ export default function PaymentConfigDetailPage() {
               <TextArea
                 rows={4}
                 placeholder="请输入商户私钥"
-                prefix={<LockOutlined />}
               />
             </Form.Item>
             <Form.Item

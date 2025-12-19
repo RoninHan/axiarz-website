@@ -230,8 +230,8 @@ export default function SettingsPage() {
       ...testimonials,
       {
         id: Date.now().toString(),
-        customerName: '',
-        customerAvatar: '',
+        name: '',
+        avatar: '',
         rating: 5,
         content: '',
         sortOrder: testimonials.length,
@@ -634,10 +634,10 @@ export default function SettingsPage() {
                     <Tag color="orange">评价 {index + 1}</Tag>
                     <Avatar
                       size="small"
-                      src={test.customerAvatar}
+                      src={test.avatar}
                       icon={<UserOutlined />}
                     />
-                    <span>{test.customerName || '未命名'}</span>
+                    <span>{test.name || '未命名'}</span>
                     <Rate disabled value={test.rating} style={{ fontSize: 14 }} />
                   </Space>
                 }
@@ -664,9 +664,9 @@ export default function SettingsPage() {
                         客户名称 *
                       </label>
                       <Input
-                        value={test.customerName}
+                        value={test.name}
                         onChange={(e) =>
-                          updateTestimonial(index, 'customerName', e.target.value)
+                          updateTestimonial(index, 'name', e.target.value)
                         }
                         placeholder="客户姓名"
                       />
@@ -678,9 +678,9 @@ export default function SettingsPage() {
                         客户头像 URL
                       </label>
                       <Input
-                        value={test.customerAvatar || ''}
+                        value={test.avatar || ''}
                         onChange={(e) =>
-                          updateTestimonial(index, 'customerAvatar', e.target.value)
+                          updateTestimonial(index, 'avatar', e.target.value)
                         }
                         placeholder="头像图片URL（可选）"
                       />

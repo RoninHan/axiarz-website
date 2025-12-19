@@ -1,0 +1,42 @@
+yarn run v1.22.22
+$ next dev
+   ▲ Next.js 14.0.3
+   - Local:        http://localhost:3000
+   - Environments: .env
+
+ ✓ Ready in 4.9s
+ ○ Compiling /admin/login ...
+ ✓ Compiled /admin/login in 3.4s (1905 modules)
+Warning: [antd: Card] `bodyStyle` is deprecated. Please use `styles.body` instead.
+ ✓ Compiled in 631ms (946 modules)
+ ✓ Compiled /api/auth/login in 347ms (1022 modules)
+ ✓ Compiled /admin in 366ms (2010 modules)
+Warning: [antd: Spin] `tip` only work in nest or fullscreen pattern.
+ ✓ Compiled /api/auth/me in 87ms (1053 modules)
+ ✓ Compiled /api/admin/stats in 143ms (1073 modules)
+=== verifyAdminAuth Debug ===
+Token from cookie: eyJhbGciOiJIUzI1NiIs...
+Token payload: {
+  id: '4d45f393-53f2-44f2-b576-18dcc792000e',
+  email: 'admin@axiarz.com',
+  role: 'super_admin',
+  type: 'admin',
+  iat: 1766124549,
+  exp: 1766729349
+}
+Looking for admin with id: 4d45f393-53f2-44f2-b576-18dcc792000e
+Admin found: admin@axiarz.com
+=== Admin Auth Success ===
+=== verifyAdminAuth Debug ===
+Token from cookie: eyJhbGciOiJIUzI1NiIs...
+Token payload: {
+  id: '4d45f393-53f2-44f2-b576-18dcc792000e',
+  email: 'admin@axiarz.com',
+  role: 'super_admin',
+  type: 'admin',
+  iat: 1766124549,
+  exp: 1766729349
+}
+Looking for admin with id: 4d45f393-53f2-44f2-b576-18dcc792000e
+Admin found: admin@axiarz.com
+=== Admin Auth Success ===

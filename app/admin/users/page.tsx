@@ -184,7 +184,6 @@ export default function UsersPage() {
             danger={record.status === 'active'}
             size="small"
             onClick={() => toggleUserStatus(record)}
-            disabled={record.type === 'admin'}
           >
             {record.status === 'active' ? '禁用' : '启用'}
           </Button>
@@ -270,8 +269,8 @@ export default function UsersPage() {
               {selectedUser.phone || '未设置'}
             </Descriptions.Item>
             <Descriptions.Item label="用户类型">
-              <Tag color={selectedUser.type === 'admin' ? 'purple' : 'blue'}>
-                {selectedUser.type === 'admin' ? '管理员' : '普通用户'}
+              <Tag color="blue">
+                普通用户
               </Tag>
             </Descriptions.Item>
             <Descriptions.Item label="状态">
