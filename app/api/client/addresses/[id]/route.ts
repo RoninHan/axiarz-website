@@ -13,7 +13,7 @@ export async function PATCH(
     }
 
     const data = await request.json()
-    const { name, phone, province, city, district, detail, postalCode, isDefault } = data
+    const { name, phone, province, city, detail, postalCode, isDefault } = data
 
     const address = await prisma.address.findUnique({
       where: { id: params.id },
@@ -38,7 +38,7 @@ export async function PATCH(
         phone,
         province,
         city,
-        district,
+        district: '', // 设置为空字符串以保持数据库一致性
         detail,
         postalCode: postalCode || null,
         isDefault: isDefault || false,

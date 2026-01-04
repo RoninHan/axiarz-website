@@ -15,6 +15,7 @@ import {
   CreditCardOutlined,
   MailOutlined,
   SettingOutlined,
+  DollarOutlined,
 } from '@ant-design/icons'
 
 const { Sider } = Layout
@@ -27,10 +28,11 @@ export default function AdminSidebar() {
     { key: '/admin/users', label: '用户管理', icon: <UserOutlined /> },
     { key: '/admin/categories', label: '分类管理', icon: <FolderOutlined /> },
     { key: '/admin/products', label: '产品管理', icon: <InboxOutlined /> },
+    { key: '/admin/orders', label: '订单管理', icon: <ShoppingOutlined /> },
+    { key: '/admin/refund-requests', label: '退款申请', icon: <DollarOutlined /> },
     { key: '/admin/solutions', label: '解决方案', icon: <BulbOutlined /> },
     { key: '/admin/help-articles', label: '帮助文章', icon: <QuestionCircleOutlined /> },
     { key: '/admin/files', label: '文件管理', icon: <FileOutlined /> },
-    { key: '/admin/orders', label: '订单管理', icon: <ShoppingOutlined /> },
     { key: '/admin/payment-configs', label: '支付配置', icon: <CreditCardOutlined /> },
     { key: '/admin/email-settings', label: '邮件配置', icon: <MailOutlined /> },
     { key: '/admin/settings', label: '系统设置', icon: <SettingOutlined /> },

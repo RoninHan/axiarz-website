@@ -57,7 +57,7 @@ export interface Order {
   userId: string
   addressId: string
   orderNumber: string
-  status: string
+  status: 'pending' | 'paid' | 'shipped' | 'delivered' | 'cancelled' | 'refunded'
   totalAmount: number
   paymentMethod: string | null
   paymentStatus: string
@@ -88,7 +88,7 @@ export interface Address {
   phone: string
   province: string
   city: string
-  district: string
+  district?: string  // 区县字段现在是可选的
   detail: string
   postalCode: string | null
   isDefault: boolean

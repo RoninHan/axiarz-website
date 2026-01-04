@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>支付表单测试</title>
+</head>
+<body>
+    <h1>支付宝支付表单处理测试</h1>
+    <p>这个页面模拟我们的支付表单处理逻辑</p>
+
+    <div id="payment-container"></div>
+
+    <script>
+        // 模拟支付宝SDK返回的HTML表单
+        const mockPaymentForm = `
+            <form action="https://openapi-sandbox.dl.alipaydev.com/gateway.do?method=alipay.trade.page.pay&app_id=2021000148665299&charset=utf-8&version=1.0&sign_type=RSA2&timestamp=2026-01-01+15%3A36%3A02&return_url=http%3A%2F%2Flocalhost%3A3000%2Forders%2Ftest-order%2Fpay%2Fsuccess&notify_url=http%3A%2F%2Flocalhost%3A3000%2Fapi%2Fpayment%2Fcallback&sign=mOmsoMLLGjffmWr0rGFADMOFq4qPlyTwWaqKkSeYhWzGCQHjeerhdR7XwqwZXw7pfi7m4plvy1VZ3hBbX7tpVdVQcNCE1JYrB28QpCWpwVvp5S9%2FRwt54uYhCfemWSxdivP%2BeqLnZUkFOnFvfJqP%2B%2Ff0BpDYQZ4L%2ByjkEIgZ4iDeSG11kjD8JgzpCjdUU%2BVYfaVRkYg4%2B9%2B1BVJFRgncwW%2Bt9Tm3o3qcaAvNGJay3CmtBwLjaO4%2BMtXILCzwMqtMZru1p4oM6K%2F%2BhopNRuXFpKm3c0Cb3o8TlFa%2FnTkTaFXaGLxs%2F17OrMhWAsBqrxUhNa2%2BP8TFG6IEhdlXBn5NDA%3D%3D" method="post" name="alipaySDKSubmitTest" id="alipaySDKSubmitTest">
+                <input type="hidden" name="alipay_sdk" value="alipay-sdk-nodejs-4.0.0" />
+                <input type="hidden" name="biz_content" value="{&quot;out_trade_no&quot;:&quot;TEST123456&quot;,&quot;product_code&quot;:&quot;FAST_INSTANT_TRADE_PAY&quot;,&quot;total_amount&quot;:&quot;99.00&quot;,&quot;subject&quot;:&quot;测试商品&quot;,&quot;body&quot;:&quot;测试商品购买&quot;}" />
+            </form>
+            <script>
+                console.log('支付表单已创建，准备自动提交...');
+                setTimeout(() => {
+                    document.forms["alipaySDKSubmitTest"].submit();
+                }, 2000);
+            </script>
+        `;
+
+        // 模拟我们的前端处理逻辑
+        function handlePaymentForm(formHtml) {
+            console.log('收到支付表单HTML:', formHtml.substring(0, 200) + '...');
+
+            // 创建临时div
+            const tempDiv = document.createElement('div');
+            tempDiv.innerHTML = formHtml;
+            tempDiv.style.display = 'none';
+            document.body.appendChild(tempDiv);
+
+            // 显示处理状态
+            const container = document.getElementById('payment-container');
+            container.innerHTML = `
+                <div style="text-align: center; padding: 40px; border: 1px solid #ddd; border-radius: 8px;">
+                    <div style="width: 64px; height: 64px; background: #1677ff; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 24px;">
+                        <span style="color: white; font-size: 24px;">💳</span>
+                    </div>
+                    <h2 style="color: #1a1a1a; margin-bottom: 16px;">正在跳转到支付宝...</h2>
+                    <p style="color: #666; margin-bottom: 24px;">请稍候，正在为您跳转到支付宝安全支付页面</p>
+                    <div style="display: inline-block; width: 32px; height: 32px; border: 2px solid #ff6b35; border-radius: 50%; border-top-color: transparent; animation: spin 1s linear infinite;"></div>
+                    <p style="color: #999; margin-top: 16px; font-size: 12px;">如果长时间未跳转，请刷新页面重试</p>
+                </div>
+                <style>
+                    @keyframes spin {
+                        to { transform: rotate(360deg); }
+                    }
+                </style>
+            `;
+
+            // 找到表单并延迟提交
+            const form = tempDiv.querySelector('form');
+            if (form) {
+                console.log('找到支付表单，准备提交...');
+                setTimeout(() => {
+                    console.log('正在提交支付表单...');
+                    // 注意：在浏览器中，这会导航到支付宝
+                    // form.submit();
+                    alert('表单已准备好提交！在实际应用中这会跳转到支付宝。');
+                }, 2000);
+            } else {
+                console.error('未找到支付表单');
+            }
+
+            // 清理
+            setTimeout(() => {
+                if (tempDiv.parentNode) {
+                    tempDiv.parentNode.removeChild(tempDiv);
+                }
+            }, 5000);
+        }
+
+        // 执行测试
+        setTimeout(() => {
+            handlePaymentForm(mockPaymentForm);
+        }, 1000);
+    </script>
+</body>
+</html>

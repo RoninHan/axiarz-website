@@ -23,9 +23,10 @@ model User {
   createdAt        DateTime  @default(now())
   updatedAt        DateTime  @updatedAt
 
-  addresses Address[]
-  orders    Order[]
-  cartItems CartItem[]
+  addresses  Address[]
+  orders     Order[]
+  cartItems  CartItem[]
+  refunds    RefundRequest[]
 
   @@map("users")
 }
@@ -144,9 +145,10 @@ model Order {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
-  user    User       @relation(fields: [userId], references: [id], onDelete: Cascade)
-  address Address    @relation(fields: [addressId], references: [id])
+  user    User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  address Address         @relation(fields: [addressId], references: [id])
   items   OrderItem[]
+  refunds RefundRequest[]
 
   @@map("orders")
 }
@@ -163,6 +165,29 @@ model OrderItem {
   product Product @relation(fields: [productId], references: [id])
 
   @@map("order_items")
+}
+
+// 退款申请模型
+model RefundRequest {
+  id            String   @id @default(uuid())
+  orderId       String
+  userId        String
+  reason        String   @db.Text // 退款原因
+  amount        Decimal  @db.Decimal(10, 2) // 退款金额
+  refundMethod  String   // original(原路退款), bank(银行卡退款)
+  bankName      String?  // 银行名称：ICBC(工商银行), ABC(农业银行), BOC(中国银行), CCB(建设银行)
+  bankAccount   String?  // 银行账号
+  accountName   String?  // 账户姓名
+  status        String   @default("pending") // pending, approved, rejected, completed
+  adminNote     String?  @db.Text // 管理员备注
+  refundTime    DateTime? // 实际退款时间
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  order Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("refund_requests")
 }
 
 model CartItem {
