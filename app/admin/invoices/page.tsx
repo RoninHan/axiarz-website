@@ -1,7 +1,6 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import AdminHeader from '@/components/admin/AdminHeader'
 import AdminCard from '@/components/admin/AdminCard'
 import { message, Select, Input, Tag, Table, Space, Button } from 'antd'
 import { FileTextOutlined, SearchOutlined, EyeOutlined } from '@ant-design/icons'
@@ -196,8 +195,6 @@ export default function InvoicesPage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <AdminHeader />
-      
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="mb-6">
           <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">

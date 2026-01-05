@@ -71,6 +71,7 @@ export interface Order {
   user?: User
   address?: Address
   items?: OrderItem[]
+  invoice?: Invoice | null
 }
 
 // 订单项类型
@@ -95,6 +96,22 @@ export interface Address {
   detail: string
   postalCode: string | null
   isDefault: boolean
+  createdAt: Date
+  updatedAt: Date
+}
+
+// 发票类型
+export interface Invoice {
+  id: string
+  orderId: string
+  type: 'personal' | 'company'
+  title: string
+  taxNumber?: string | null
+  email?: string | null
+  status: 'pending' | 'processing' | 'completed' | 'rejected'
+  invoiceNumber?: string | null
+  invoiceUrl?: string | null
+  rejectionReason?: string | null
   createdAt: Date
   updatedAt: Date
 }

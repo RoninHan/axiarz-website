@@ -34,10 +34,10 @@ export async function POST(request: NextRequest) {
       })
 
       const response = successResponse({ admin, token })
-      // 设置 HttpOnly cookie
+      // 设置 HttpOnly cookie，使用 admin_token 作为 cookie 名称
       response.headers.set(
         'Set-Cookie',
-        `token=${token}; Path=/; HttpOnly; SameSite=Lax; Max-Age=604800`
+        `admin_token=${token}; Path=/; HttpOnly; SameSite=Lax; Max-Age=604800`
       )
       return response
     } else {
@@ -63,10 +63,10 @@ export async function POST(request: NextRequest) {
       })
 
       const response = successResponse({ user, token })
-      // 设置 cookie
+      // 设置 HttpOnly cookie，使用 client_token 作为 cookie 名称
       response.headers.set(
         'Set-Cookie',
-        `token=${token}; Path=/; HttpOnly; SameSite=Lax; Max-Age=604800`
+        `client_token=${token}; Path=/; HttpOnly; SameSite=Lax; Max-Age=604800`
       )
       return response
     }

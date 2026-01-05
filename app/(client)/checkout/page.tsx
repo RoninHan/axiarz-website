@@ -20,7 +20,7 @@ import Button from '@/components/client/Button'
 import Card from '@/components/client/Card'
 import Input from '@/components/client/Input'
 import ProtectedRoute from '@/components/client/ProtectedRoute'
-import { Address, PaymentConfig, Order } from '@/types'
+import { Address, PaymentConfig, Order, CartItem } from '@/types'
 
 interface WalletData {
   balance: string
@@ -42,8 +42,7 @@ function CheckoutPageContent() {
   const [addresses, setAddresses] = useState<Address[]>([])
   const [selectedAddressId, setSelectedAddressId] = useState<string>('')
   const [paymentMethods, setPaymentMethods] = useState<PaymentConfig[]>([])
-  const [selectedPayment, setSelectedPayment] = useState<string>('')
-  const [useWallet, setUseWallet] = useState(false)
+  const [selectedPayment, setSelectedPayment] = useState<string>('wallet') // 默认选择钱包支付
   const [wallet, setWallet] = useState<WalletData | null>(null)
   const [invoice, setInvoice] = useState<InvoiceData>({
     needInvoice: false,
@@ -53,6 +52,7 @@ function CheckoutPageContent() {
     email: ''
   })
   const [order, setOrder] = useState<Order | null>(null) // 存储订单信息
+  const [cartItems, setCartItems] = useState<CartItem[]>([]) // 存储购物车商品
   const [loading, setLoading] = useState(true)
   const [submitting, setSubmitting] = useState(false)
   const [messageApi, contextHolder] = message.useMessage()
@@ -63,6 +63,9 @@ function CheckoutPageContent() {
     fetchWallet()
     if (orderId) {
       fetchOrder(orderId)
+    } else {
+      // 从购物车结算，获取购物车数据
+      fetchCartItems()
     }
   }, [orderId])
 
@@ -93,9 +96,7 @@ function CheckoutPageContent() {
       if (data.success) {
         const enabled = data.data.filter((p: PaymentConfig) => p.enabled)
         setPaymentMethods(enabled.sort((a: PaymentConfig, b: PaymentConfig) => a.sortOrder - b.sortOrder))
-        if (enabled.length > 0) {
-          setSelectedPayment(enabled[0].name) // 使用 name 而不是 id
-        }
+        // 不再自动选择第一个支付方式，保持默认的wallet选中状态
       }
     } catch (error) {
       console.error('获取支付方式失败:', error)
@@ -111,6 +112,20 @@ function CheckoutPageContent() {
       }
     } catch (error) {
       console.error('获取钱包信息失败:', error)
+    }
+  }
+
+  async function fetchCartItems() {
+    try {
+      const res = await fetch('/api/client/cart')
+      const data = await res.json()
+      if (data.success) {
+        setCartItems(data.data)
+      }
+    } catch (error) {
+      console.error('获取购物车失败:', error)
+    } finally {
+      setLoading(false)
     }
   }
 
@@ -137,12 +152,28 @@ function CheckoutPageContent() {
   }
 
   function getTotalAmount() {
-    return order ? Number(order.totalAmount) : 0
+    // 如果是订单页面，使用订单金额
+    if (order) {
+      return Number(order.totalAmount)
+    }
+    // 如果是购物车，计算购物车商品总额
+    if (cartItems.length > 0) {
+      return cartItems.reduce((total, item) => {
+        const price = item.product ? Number(item.product.price) : 0
+        return total + (price * item.quantity)
+      }, 0)
+    }
+    return 0
   }
 
   async function handleSubmit() {
     if (!selectedAddressId) {
       messageApi.warning('请选择收货地址')
+      return
+    }
+    
+    if (!selectedPayment) {
+      messageApi.warning('请选择支付方式')
       return
     }
     
@@ -168,16 +199,10 @@ function CheckoutPageContent() {
       }
     }
     
-    // 如果使用钱包支付
-    if (useWallet) {
+    // 如果使用钱包支付，检查余额
+    if (selectedPayment === 'wallet') {
       if (!wallet || Number(wallet.balance) < getTotalAmount()) {
         messageApi.error('钱包余额不足')
-        return
-      }
-    } else {
-      // 其他支付方式
-      if (!selectedPayment) {
-        messageApi.warning('请选择支付方式')
         return
       }
     }
@@ -192,15 +217,15 @@ function CheckoutPageContent() {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            paymentMethod: useWallet ? 'wallet' : selectedPayment,
-            useWallet: useWallet,
+            paymentMethod: selectedPayment,
+            useWallet: selectedPayment === 'wallet',
           }),
         })
         const payData = await payRes.json()
         
         if (payData.success) {
           // 钱包支付直接成功
-          if (useWallet || payData.data.paymentMethod === 'wallet') {
+          if (selectedPayment === 'wallet' || payData.data.paymentMethod === 'wallet') {
             messageApi.success('支付成功！')
             setTimeout(() => router.push(`/orders/${orderId}`), 1000)
             return
@@ -228,7 +253,7 @@ function CheckoutPageContent() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           addressId: selectedAddressId,
-          paymentMethod: useWallet ? 'wallet' : selectedPayment,
+          paymentMethod: selectedPayment,
           invoice: invoice.needInvoice ? {
             type: invoice.type,
             title: invoice.title,
@@ -397,22 +422,31 @@ function CheckoutPageContent() {
               </h3>
 
               {/* 钱包支付选项 */}
+              {/* 钱包支付选项 */}
               {wallet && (
-                <div className="mb-4 p-4 bg-gradient-to-r from-orange-50 to-amber-50 border-2 border-orange-200 rounded-lg">
-                  <label className="flex items-center justify-between cursor-pointer">
+                <label 
+                  className={`block mb-4 p-4 border-2 rounded-lg cursor-pointer transition-all ${
+                    selectedPayment === 'wallet'
+                      ? 'bg-gradient-to-r from-orange-50 to-amber-50 border-orange-300 shadow-md'
+                      : 'bg-white border-gray-200 hover:border-gray-300 hover:shadow-sm'
+                  }`}
+                >
+                  <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
                       <input
-                        type="checkbox"
-                        checked={useWallet}
-                        onChange={(e) => setUseWallet(e.target.checked)}
-                        className="w-5 h-5 text-accent-orange rounded"
+                        type="radio"
+                        name="payment"
+                        value="wallet"
+                        checked={selectedPayment === 'wallet'}
+                        onChange={(e) => setSelectedPayment(e.target.value)}
+                        className="w-5 h-5 text-accent-orange"
                       />
                       <div>
                         <div className="flex items-center gap-2">
                           <WalletOutlined className="text-accent-orange text-lg" />
                           <span className="text-body font-medium text-gray-800">使用钱包余额</span>
                         </div>
-                        <p className="text-xs text-gray-600 mt-1">
+                        <p className="text-xs text-gray-600 mt-1 ml-7">
                           当前余额: <span className="font-bold text-accent-orange">¥{Number(wallet.balance).toFixed(2)}</span>
                         </p>
                       </div>
@@ -424,15 +458,16 @@ function CheckoutPageContent() {
                     >
                       充值 →
                     </Link>
-                  </label>
-                  {useWallet && Number(wallet.balance) < getTotalAmount() && (
-                    <div className="mt-3 p-2 bg-red-50 border border-red-200 rounded text-xs text-red-600">
+                  </div>
+                  {selectedPayment === 'wallet' && Number(wallet.balance) < getTotalAmount() && (
+                    <div className="mt-3 p-2 bg-red-50 border border-red-200 rounded text-xs text-red-600 ml-7">
                       余额不足，请先充值或选择其他支付方式
                     </div>
                   )}
-                </div>
+                </label>
               )}
 
+              {/* 其他支付方式 */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                 {paymentMethods.map((method) => (
                   <label
@@ -441,7 +476,7 @@ function CheckoutPageContent() {
                       selectedPayment === method.name
                         ? 'border-accent-orange bg-orange-50 shadow-md'
                         : 'border-gray-200 hover:border-gray-300 hover:shadow-sm'
-                    } ${useWallet ? 'opacity-50' : ''}`}
+                    }`}
                   >
                     <div className="flex items-center gap-3">
                       <input
@@ -450,7 +485,6 @@ function CheckoutPageContent() {
                         value={method.name}
                         checked={selectedPayment === method.name}
                         onChange={(e) => setSelectedPayment(e.target.value)}
-                        disabled={useWallet}
                         className="w-4 h-4 text-accent-orange"
                       />
                       <div className="flex-1">
@@ -605,7 +639,7 @@ function CheckoutPageContent() {
                   <div className="flex justify-between text-body">
                     <span className="text-gray-600">商品小计</span>
                     <span className="text-gray-800 font-medium">
-                      ¥{order ? Number(order.totalAmount).toFixed(2) : '0.00'}
+                      ¥{getTotalAmount().toFixed(2)}
                     </span>
                   </div>
                   <div className="flex justify-between text-body">
@@ -617,7 +651,7 @@ function CheckoutPageContent() {
                       <span className="text-gray-600">订单总计</span>
                       <div className="text-right">
                         <div className="text-2xl font-bold text-accent-orange">
-                          ¥{order ? Number(order.totalAmount).toFixed(2) : '0.00'}
+                          ¥{getTotalAmount().toFixed(2)}
                         </div>
                       </div>
                     </div>
@@ -628,7 +662,7 @@ function CheckoutPageContent() {
                   variant="primary"
                   className="w-full py-3 text-lg"
                   onClick={handleSubmit}
-                  disabled={submitting || !selectedAddressId || !selectedPayment}
+                  disabled={submitting || !selectedAddressId || !selectedPayment || getTotalAmount() === 0}
                 >
                   {submitting ? (
                     <>

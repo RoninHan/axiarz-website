@@ -14,12 +14,18 @@ export function getTokenFromRequest(request: NextRequest): string | null {
   // 根据路径或认证类型选择对应的 token
   if (authType === 'admin' || request.nextUrl.pathname.startsWith('/api/admin')) {
     return request.cookies.get('admin_token')?.value || null
-  } else {
+  } else if (authType === 'user' || request.nextUrl.pathname.startsWith('/api/client')) {
     return request.cookies.get('client_token')?.value || null
   }
   
-  // 兼容旧版本的通用 token
-  // return request.cookies.get('token')?.value || null
+  // 对于 /api/auth/me 等公共接口，先尝试 admin_token，再尝试 client_token
+  const adminToken = request.cookies.get('admin_token')?.value
+  if (adminToken) return adminToken
+  
+  const clientToken = request.cookies.get('client_token')?.value
+  if (clientToken) return clientToken
+  
+  return null
 }
 
 export function getAuthFromRequest(request: NextRequest): JWTPayload | null {

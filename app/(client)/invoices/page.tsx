@@ -7,8 +7,6 @@ import Link from 'next/link'
 import Button from '@/components/client/Button'
 import Card from '@/components/client/Card'
 import ProtectedRoute from '@/components/client/ProtectedRoute'
-import ClientNavbar from '@/components/client/ClientNavbar'
-import ClientFooter from '@/components/client/ClientFooter'
 
 interface Invoice {
   id: string
@@ -71,22 +69,15 @@ function InvoicesPageContent() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex flex-col">
-        <ClientNavbar />
-        <div className="flex-1 flex items-center justify-center">
-          <Spin size="large" />
-        </div>
-        <ClientFooter />
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <Spin size="large" />
       </div>
     )
   }
 
   return (
-    <div className="min-h-screen flex flex-col bg-gray-50">
-      <ClientNavbar />
-      
-      <div className="flex-1 py-12">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-gray-50 py-12">
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="mb-8">
             <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-3">
               <FileTextOutlined className="text-accent-orange" />
@@ -225,9 +216,6 @@ function InvoicesPageContent() {
           </Card>
         </div>
       </div>
-
-      <ClientFooter />
-    </div>
   )
 }
 

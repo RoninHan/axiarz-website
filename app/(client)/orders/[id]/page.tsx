@@ -31,6 +31,14 @@ function OrderDetailPageContent() {
   const [showCancelModal, setShowCancelModal] = useState(false)
   const [showRepairModal, setShowRepairModal] = useState(false)
   const [submittingRepair, setSubmittingRepair] = useState(false)
+  const [showInvoiceModal, setShowInvoiceModal] = useState(false)
+  const [submittingInvoice, setSubmittingInvoice] = useState(false)
+  const [invoiceForm, setInvoiceForm] = useState({
+    type: 'personal' as 'personal' | 'company',
+    title: '',
+    taxNumber: '',
+    email: ''
+  })
   const [repairForm, setRepairForm] = useState({
     productName: '',
     issue: '',
@@ -169,6 +177,62 @@ function OrderDetailPageContent() {
     }
   }
 
+  async function handleSubmitInvoice() {
+    if (!order) return
+    
+    // 验证表单
+    if (!invoiceForm.title.trim()) {
+      messageApi.error('请填写发票抬头')
+      return
+    }
+    if (invoiceForm.type === 'company' && !invoiceForm.taxNumber.trim()) {
+      messageApi.error('请填写企业税号')
+      return
+    }
+    if (!invoiceForm.email.trim()) {
+      messageApi.error('请填写接收发票的邮箱')
+      return
+    }
+    
+    // 邮箱格式验证
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+    if (!emailRegex.test(invoiceForm.email)) {
+      messageApi.error('请填写正确的邮箱地址')
+      return
+    }
+
+    try {
+      setSubmittingInvoice(true)
+      const res = await fetch(`/api/client/orders/${order.id}/invoice`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          type: invoiceForm.type,
+          title: invoiceForm.title,
+          taxNumber: invoiceForm.type === 'company' ? invoiceForm.taxNumber : '',
+          email: invoiceForm.email
+        })
+      })
+      const data = await res.json()
+
+      if (data.success) {
+        messageApi.success('发票申请已提交')
+        setShowInvoiceModal(false)
+        setInvoiceForm({ type: 'personal', title: '', taxNumber: '', email: '' })
+        // 刷新订单信息
+        if (params.id) {
+          fetchOrder(params.id as string)
+        }
+      } else {
+        messageApi.error(data.error || '申请发票失败')
+      }
+    } catch (error) {
+      messageApi.error('申请发票失败')
+    } finally {
+      setSubmittingInvoice(false)
+    }
+  }
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -247,13 +311,38 @@ function OrderDetailPageContent() {
             
             {/* 已完成订单显示申请维修按钮 */}
             {order.status === 'delivered' && (
+              <div className="flex gap-3">
+                <Button 
+                  variant="outline" 
+                  size="medium" 
+                  onClick={() => setShowRepairModal(true)}
+                >
+                  <ToolOutlined className="mr-2" />
+                  申请维修
+                </Button>
+                {/* 补开发票按钮 - 仅当订单已支付且无发票时显示 */}
+                {order.paymentStatus === 'paid' && !order.invoice && (
+                  <Button 
+                    variant="primary" 
+                    size="medium" 
+                    onClick={() => setShowInvoiceModal(true)}
+                  >
+                    <FileTextOutlined className="mr-2" />
+                    申请发票
+                  </Button>
+                )}
+              </div>
+            )}
+            
+            {/* 已支付订单也可以申请发票 */}
+            {(order.status === 'paid' || order.status === 'shipped') && order.paymentStatus === 'paid' && !order.invoice && (
               <Button 
-                variant="outline" 
+                variant="primary" 
                 size="medium" 
-                onClick={() => setShowRepairModal(true)}
+                onClick={() => setShowInvoiceModal(true)}
               >
-                <ToolOutlined className="mr-2" />
-                申请维修
+                <FileTextOutlined className="mr-2" />
+                申请发票
               </Button>
             )}
           </div>
@@ -534,6 +623,132 @@ function OrderDetailPageContent() {
 
           <div className="text-sm text-gray-500">
             <p>提交后，您可以在 <Link href="/repairs" className="text-accent-orange hover:underline">我的维修工单</Link> 页面查看处理进度。</p>
+          </div>
+        </div>
+      </Modal>
+
+      {/* 申请发票弹窗 */}
+      <Modal
+        title={
+          <div className="flex items-center gap-2">
+            <FileTextOutlined className="text-accent-orange" />
+            <span>申请发票</span>
+          </div>
+        }
+        open={showInvoiceModal}
+        onOk={handleSubmitInvoice}
+        onCancel={() => {
+          setShowInvoiceModal(false)
+          setInvoiceForm({ type: 'personal', title: '', taxNumber: '', email: '' })
+        }}
+        okText="提交申请"
+        cancelText="取消"
+        okButtonProps={{ loading: submittingInvoice }}
+        width={600}
+      >
+        <div className="py-4 space-y-4">
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
+            <p className="text-sm text-blue-800">
+              <strong>订单号：</strong>{order?.orderNumber}
+            </p>
+            <p className="text-sm text-blue-800 mt-1">
+              <strong>订单金额：</strong>¥{Number(order?.totalAmount).toFixed(2)}
+            </p>
+            <p className="text-sm text-blue-700 mt-2">
+              发票将在3-5个工作日内开具，电子发票将发送至您填写的邮箱。
+            </p>
+          </div>
+
+          {/* 发票类型 */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              发票类型 <span className="text-red-500">*</span>
+            </label>
+            <div className="grid grid-cols-2 gap-3">
+              <label
+                className={`flex items-center justify-center p-3 border-2 rounded-lg cursor-pointer transition-all ${
+                  invoiceForm.type === 'personal'
+                    ? 'border-accent-orange bg-orange-50 text-accent-orange'
+                    : 'border-gray-300 hover:border-gray-400'
+                }`}
+              >
+                <input
+                  type="radio"
+                  name="invoiceType"
+                  value="personal"
+                  checked={invoiceForm.type === 'personal'}
+                  onChange={() => setInvoiceForm({ ...invoiceForm, type: 'personal', taxNumber: '' })}
+                  className="sr-only"
+                />
+                <span className="font-medium">个人</span>
+              </label>
+              <label
+                className={`flex items-center justify-center p-3 border-2 rounded-lg cursor-pointer transition-all ${
+                  invoiceForm.type === 'company'
+                    ? 'border-accent-orange bg-orange-50 text-accent-orange'
+                    : 'border-gray-300 hover:border-gray-400'
+                }`}
+              >
+                <input
+                  type="radio"
+                  name="invoiceType"
+                  value="company"
+                  checked={invoiceForm.type === 'company'}
+                  onChange={() => setInvoiceForm({ ...invoiceForm, type: 'company' })}
+                  className="sr-only"
+                />
+                <span className="font-medium">企业</span>
+              </label>
+            </div>
+          </div>
+
+          {/* 发票抬头 */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              发票抬头 <span className="text-red-500">*</span>
+            </label>
+            <input
+              type="text"
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-accent-orange focus:border-transparent"
+              placeholder={invoiceForm.type === 'personal' ? '请输入姓名' : '请输入企业名称'}
+              value={invoiceForm.title}
+              onChange={(e) => setInvoiceForm({ ...invoiceForm, title: e.target.value })}
+            />
+          </div>
+
+          {/* 税号（企业发票） */}
+          {invoiceForm.type === 'company' && (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                税号 <span className="text-red-500">*</span>
+              </label>
+              <input
+                type="text"
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-accent-orange focus:border-transparent"
+                placeholder="请输入纳税人识别号"
+                value={invoiceForm.taxNumber}
+                onChange={(e) => setInvoiceForm({ ...invoiceForm, taxNumber: e.target.value })}
+              />
+            </div>
+          )}
+
+          {/* 接收邮箱 */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              接收邮箱 <span className="text-red-500">*</span>
+            </label>
+            <input
+              type="email"
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-accent-orange focus:border-transparent"
+              placeholder="请输入接收发票的邮箱地址"
+              value={invoiceForm.email}
+              onChange={(e) => setInvoiceForm({ ...invoiceForm, email: e.target.value })}
+            />
+            <p className="text-xs text-gray-500 mt-1">电子发票将发送至此邮箱</p>
+          </div>
+
+          <div className="text-sm text-gray-500">
+            <p>提交后，您可以在 <Link href="/invoices" className="text-accent-orange hover:underline">我的发票</Link> 页面查看开票进度。</p>
           </div>
         </div>
       </Modal>

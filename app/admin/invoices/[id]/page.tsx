@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
-import AdminHeader from '@/components/admin/AdminHeader'
 import AdminCard from '@/components/admin/AdminCard'
 import { message, Tag, Descriptions, Space, Button, Modal, Input, Upload, Spin } from 'antd'
 import { 
@@ -248,7 +247,6 @@ export default function InvoiceDetailPage() {
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50">
-        <AdminHeader />
         <div className="flex items-center justify-center h-96">
           <Spin size="large" />
         </div>
@@ -259,7 +257,6 @@ export default function InvoiceDetailPage() {
   if (!invoice) {
     return (
       <div className="min-h-screen bg-gray-50">
-        <AdminHeader />
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <div className="text-center">发票不存在</div>
         </div>
@@ -269,8 +266,6 @@ export default function InvoiceDetailPage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <AdminHeader />
-      
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* 页头 */}
         <div className="mb-6 flex items-center justify-between">
