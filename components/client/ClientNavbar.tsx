@@ -3,7 +3,7 @@
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { Button, Modal, Dropdown } from 'antd'
-import { ShoppingCartOutlined, UserOutlined, LogoutOutlined, LoginOutlined, UserAddOutlined, ExclamationCircleOutlined, DownOutlined, ProfileOutlined, OrderedListOutlined } from '@ant-design/icons'
+import { ShoppingCartOutlined, UserOutlined, LogoutOutlined, LoginOutlined, UserAddOutlined, ExclamationCircleOutlined, DownOutlined, ProfileOutlined, OrderedListOutlined, WalletOutlined, LockOutlined, FileTextOutlined } from '@ant-design/icons'
 import { useAuth } from '@/contexts/AuthContext'
 import { useState, useEffect } from 'react'
 
@@ -113,6 +113,27 @@ export default function ClientNavbar() {
                       label: '我的订单',
                       icon: <OrderedListOutlined />,
                       onClick: () => router.push('/orders'),
+                    },
+                    {
+                      key: 'wallet',
+                      label: '我的钱包',
+                      icon: <WalletOutlined />,
+                      onClick: () => router.push('/wallet'),
+                    },
+                    {
+                      key: 'invoices',
+                      label: '我的发票',
+                      icon: <FileTextOutlined />,
+                      onClick: () => router.push('/invoices'),
+                    },
+                    {
+                      type: 'divider',
+                    },
+                    {
+                      key: 'change-password',
+                      label: '修改密码',
+                      icon: <LockOutlined />,
+                      onClick: () => router.push('/change-password'),
                     },
                     {
                       type: 'divider',

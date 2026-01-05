@@ -11,7 +11,9 @@ import {
   EditOutlined,
   SafetyOutlined,
   ShoppingCartOutlined,
-  LeftOutlined
+  LeftOutlined,
+  WalletOutlined,
+  FileTextOutlined
 } from '@ant-design/icons'
 import Link from 'next/link'
 import Button from '@/components/client/Button'
@@ -19,6 +21,19 @@ import Card from '@/components/client/Card'
 import Input from '@/components/client/Input'
 import ProtectedRoute from '@/components/client/ProtectedRoute'
 import { Address, PaymentConfig, Order } from '@/types'
+
+interface WalletData {
+  balance: string
+  frozen: string
+}
+
+interface InvoiceData {
+  needInvoice: boolean
+  type: 'personal' | 'company'
+  title: string
+  taxNumber: string
+  email: string
+}
 
 function CheckoutPageContent() {
   const router = useRouter()
@@ -28,6 +43,15 @@ function CheckoutPageContent() {
   const [selectedAddressId, setSelectedAddressId] = useState<string>('')
   const [paymentMethods, setPaymentMethods] = useState<PaymentConfig[]>([])
   const [selectedPayment, setSelectedPayment] = useState<string>('')
+  const [useWallet, setUseWallet] = useState(false)
+  const [wallet, setWallet] = useState<WalletData | null>(null)
+  const [invoice, setInvoice] = useState<InvoiceData>({
+    needInvoice: false,
+    type: 'personal',
+    title: '',
+    taxNumber: '',
+    email: ''
+  })
   const [order, setOrder] = useState<Order | null>(null) // 存储订单信息
   const [loading, setLoading] = useState(true)
   const [submitting, setSubmitting] = useState(false)
@@ -36,6 +60,7 @@ function CheckoutPageContent() {
   useEffect(() => {
     fetchAddresses()
     fetchPaymentMethods()
+    fetchWallet()
     if (orderId) {
       fetchOrder(orderId)
     }
@@ -77,6 +102,18 @@ function CheckoutPageContent() {
     }
   }
 
+  async function fetchWallet() {
+    try {
+      const res = await fetch('/api/client/wallet')
+      const data = await res.json()
+      if (data.success) {
+        setWallet(data.data)
+      }
+    } catch (error) {
+      console.error('获取钱包信息失败:', error)
+    }
+  }
+
   async function fetchOrder(id: string) {
     try {
       const res = await fetch(`/api/client/orders/${id}`)
@@ -99,14 +136,50 @@ function CheckoutPageContent() {
     }
   }
 
+  function getTotalAmount() {
+    return order ? Number(order.totalAmount) : 0
+  }
+
   async function handleSubmit() {
     if (!selectedAddressId) {
       messageApi.warning('请选择收货地址')
       return
     }
-    if (!selectedPayment) {
-      messageApi.warning('请选择支付方式')
-      return
+    
+    // 验证发票信息
+    if (invoice.needInvoice) {
+      if (!invoice.title.trim()) {
+        messageApi.error('请填写发票抬头')
+        return
+      }
+      if (invoice.type === 'company' && !invoice.taxNumber.trim()) {
+        messageApi.error('请填写企业税号')
+        return
+      }
+      if (!invoice.email.trim()) {
+        messageApi.error('请填写接收发票的邮箱')
+        return
+      }
+      // 简单的邮箱格式验证
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+      if (!emailRegex.test(invoice.email)) {
+        messageApi.error('请填写正确的邮箱地址')
+        return
+      }
+    }
+    
+    // 如果使用钱包支付
+    if (useWallet) {
+      if (!wallet || Number(wallet.balance) < getTotalAmount()) {
+        messageApi.error('钱包余额不足')
+        return
+      }
+    } else {
+      // 其他支付方式
+      if (!selectedPayment) {
+        messageApi.warning('请选择支付方式')
+        return
+      }
     }
 
     try {
@@ -119,19 +192,29 @@ function CheckoutPageContent() {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            paymentMethod: selectedPayment,
+            paymentMethod: useWallet ? 'wallet' : selectedPayment,
+            useWallet: useWallet,
           }),
         })
         const payData = await payRes.json()
         
-        if (payData.success && payData.data.paymentUrl) {
-          messageApi.success('正在跳转到支付页面...')
-          // 支付宝返回的是HTML表单，需要在新页面中渲染
-          // 创建一个新窗口并写入HTML
-          const paymentWindow = window.open('', '_self')
-          if (paymentWindow) {
-            paymentWindow.document.write(payData.data.paymentUrl)
-            paymentWindow.document.close()
+        if (payData.success) {
+          // 钱包支付直接成功
+          if (useWallet || payData.data.paymentMethod === 'wallet') {
+            messageApi.success('支付成功！')
+            setTimeout(() => router.push(`/orders/${orderId}`), 1000)
+            return
+          }
+          
+          // 其他支付方式跳转
+          if (payData.data.paymentUrl) {
+            messageApi.success('正在跳转到支付页面...')
+            // 支付宝返回的是HTML表单，需要在新页面中渲染
+            const paymentWindow = window.open('', '_self')
+            if (paymentWindow) {
+              paymentWindow.document.write(payData.data.paymentUrl)
+              paymentWindow.document.close()
+            }
           }
         } else {
           messageApi.error(payData.error || '发起支付失败')
@@ -145,7 +228,13 @@ function CheckoutPageContent() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           addressId: selectedAddressId,
-          paymentMethod: selectedPayment,
+          paymentMethod: useWallet ? 'wallet' : selectedPayment,
+          invoice: invoice.needInvoice ? {
+            type: invoice.type,
+            title: invoice.title,
+            taxNumber: invoice.type === 'company' ? invoice.taxNumber : '',
+            email: invoice.email
+          } : null
         }),
       })
       const data = await res.json()
@@ -306,6 +395,44 @@ function CheckoutPageContent() {
                 <CreditCardOutlined className="text-accent-orange" />
                 支付方式
               </h3>
+
+              {/* 钱包支付选项 */}
+              {wallet && (
+                <div className="mb-4 p-4 bg-gradient-to-r from-orange-50 to-amber-50 border-2 border-orange-200 rounded-lg">
+                  <label className="flex items-center justify-between cursor-pointer">
+                    <div className="flex items-center gap-3">
+                      <input
+                        type="checkbox"
+                        checked={useWallet}
+                        onChange={(e) => setUseWallet(e.target.checked)}
+                        className="w-5 h-5 text-accent-orange rounded"
+                      />
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <WalletOutlined className="text-accent-orange text-lg" />
+                          <span className="text-body font-medium text-gray-800">使用钱包余额</span>
+                        </div>
+                        <p className="text-xs text-gray-600 mt-1">
+                          当前余额: <span className="font-bold text-accent-orange">¥{Number(wallet.balance).toFixed(2)}</span>
+                        </p>
+                      </div>
+                    </div>
+                    <Link 
+                      href="/wallet" 
+                      className="text-xs text-accent-orange hover:underline"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      充值 →
+                    </Link>
+                  </label>
+                  {useWallet && Number(wallet.balance) < getTotalAmount() && (
+                    <div className="mt-3 p-2 bg-red-50 border border-red-200 rounded text-xs text-red-600">
+                      余额不足，请先充值或选择其他支付方式
+                    </div>
+                  )}
+                </div>
+              )}
+
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                 {paymentMethods.map((method) => (
                   <label
@@ -314,7 +441,7 @@ function CheckoutPageContent() {
                       selectedPayment === method.name
                         ? 'border-accent-orange bg-orange-50 shadow-md'
                         : 'border-gray-200 hover:border-gray-300 hover:shadow-sm'
-                    }`}
+                    } ${useWallet ? 'opacity-50' : ''}`}
                   >
                     <div className="flex items-center gap-3">
                       <input
@@ -323,6 +450,7 @@ function CheckoutPageContent() {
                         value={method.name}
                         checked={selectedPayment === method.name}
                         onChange={(e) => setSelectedPayment(e.target.value)}
+                        disabled={useWallet}
                         className="w-4 h-4 text-accent-orange"
                       />
                       <div className="flex-1">
@@ -341,6 +469,129 @@ function CheckoutPageContent() {
                   我们采用业界领先的加密技术，确保您的支付信息安全
                 </p>
               </div>
+            </Card>
+
+            {/* 发票信息 */}
+            <Card className="bg-white">
+              <h3 className="text-title-small font-bold mb-6 flex items-center gap-2 text-gray-800">
+                <FileTextOutlined className="text-accent-orange" />
+                发票信息
+              </h3>
+
+              {/* 是否需要发票 */}
+              <div className="mb-4">
+                <label className="flex items-center gap-3 cursor-pointer p-4 border-2 border-gray-200 rounded-lg hover:border-gray-300 transition-all">
+                  <input
+                    type="checkbox"
+                    checked={invoice.needInvoice}
+                    onChange={(e) => setInvoice({ ...invoice, needInvoice: e.target.checked })}
+                    className="w-5 h-5 text-accent-orange rounded"
+                  />
+                  <span className="text-body font-medium text-gray-800">需要开具发票</span>
+                </label>
+              </div>
+
+              {/* 发票详情 */}
+              {invoice.needInvoice && (
+                <div className="space-y-4 p-4 bg-gray-50 rounded-lg border border-gray-200">
+                  {/* 发票类型 */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      发票类型 <span className="text-red-500">*</span>
+                    </label>
+                    <div className="grid grid-cols-2 gap-3">
+                      <label
+                        className={`flex items-center justify-center p-3 border-2 rounded-lg cursor-pointer transition-all ${
+                          invoice.type === 'personal'
+                            ? 'border-accent-orange bg-orange-50 text-accent-orange'
+                            : 'border-gray-300 hover:border-gray-400'
+                        }`}
+                      >
+                        <input
+                          type="radio"
+                          name="invoiceType"
+                          value="personal"
+                          checked={invoice.type === 'personal'}
+                          onChange={(e) => setInvoice({ ...invoice, type: 'personal', taxNumber: '' })}
+                          className="sr-only"
+                        />
+                        <span className="font-medium">个人</span>
+                      </label>
+                      <label
+                        className={`flex items-center justify-center p-3 border-2 rounded-lg cursor-pointer transition-all ${
+                          invoice.type === 'company'
+                            ? 'border-accent-orange bg-orange-50 text-accent-orange'
+                            : 'border-gray-300 hover:border-gray-400'
+                        }`}
+                      >
+                        <input
+                          type="radio"
+                          name="invoiceType"
+                          value="company"
+                          checked={invoice.type === 'company'}
+                          onChange={(e) => setInvoice({ ...invoice, type: 'company' })}
+                          className="sr-only"
+                        />
+                        <span className="font-medium">企业</span>
+                      </label>
+                    </div>
+                  </div>
+
+                  {/* 发票抬头 */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      发票抬头 <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-accent-orange focus:border-transparent"
+                      placeholder={invoice.type === 'personal' ? '请输入姓名' : '请输入企业名称'}
+                      value={invoice.title}
+                      onChange={(e) => setInvoice({ ...invoice, title: e.target.value })}
+                    />
+                  </div>
+
+                  {/* 税号（企业发票） */}
+                  {invoice.type === 'company' && (
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        税号 <span className="text-red-500">*</span>
+                      </label>
+                      <input
+                        type="text"
+                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-accent-orange focus:border-transparent"
+                        placeholder="请输入纳税人识别号"
+                        value={invoice.taxNumber}
+                        onChange={(e) => setInvoice({ ...invoice, taxNumber: e.target.value })}
+                      />
+                    </div>
+                  )}
+
+                  {/* 接收邮箱 */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      接收邮箱 <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="email"
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-accent-orange focus:border-transparent"
+                      placeholder="请输入接收发票的邮箱地址"
+                      value={invoice.email}
+                      onChange={(e) => setInvoice({ ...invoice, email: e.target.value })}
+                    />
+                    <p className="text-xs text-gray-500 mt-1">电子发票将发送至此邮箱</p>
+                  </div>
+
+                  <div className="text-xs text-gray-500 bg-blue-50 border border-blue-200 rounded p-3">
+                    <p className="mb-1">📄 发票说明：</p>
+                    <ul className="space-y-1 ml-4">
+                      <li>• 发票将在订单完成后的3-5个工作日内开具</li>
+                      <li>• 电子发票将发送至您的注册邮箱</li>
+                      <li>• 如需纸质发票，请联系客服</li>
+                    </ul>
+                  </div>
+                </div>
+              )}
             </Card>
           </div>
 

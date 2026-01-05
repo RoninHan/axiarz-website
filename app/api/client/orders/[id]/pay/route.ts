@@ -27,13 +27,86 @@ export async function POST(
     }
 
     const data = await request.json()
-    const { paymentMethod } = data
+    const { paymentMethod, useWallet } = data
 
     if (!paymentMethod) {
       return errorResponse('请选择支付方式', 400)
     }
 
-    // 支付逻辑实现
+    // 钱包支付逻辑
+    if (paymentMethod === 'wallet' || useWallet) {
+      // 获取用户钱包
+      let wallet = await prisma.wallet.findUnique({
+        where: { userId: auth.id }
+      })
+
+      if (!wallet) {
+        wallet = await prisma.wallet.create({
+          data: {
+            userId: auth.id,
+            balance: 0,
+            frozen: 0
+          }
+        })
+      }
+
+      const orderAmount = Number(order.totalAmount)
+      const walletBalance = Number(wallet.balance)
+
+      // 检查余额是否足够
+      if (walletBalance < orderAmount) {
+        return errorResponse(`钱包余额不足，当前余额 ¥${walletBalance.toFixed(2)}，需要 ¥${orderAmount.toFixed(2)}`, 400)
+      }
+
+      // 使用事务处理钱包扣款和订单更新
+      const result = await prisma.$transaction(async (tx) => {
+        // 扣除钱包余额
+        const updatedWallet = await tx.wallet.update({
+          where: { userId: auth.id },
+          data: {
+            balance: {
+              decrement: orderAmount
+            }
+          }
+        })
+
+        // 创建钱包交易记录
+        await tx.walletTransaction.create({
+          data: {
+            userId: auth.id,
+            type: 'PAYMENT',
+            amount: orderAmount,
+            balance: Number(updatedWallet.balance),
+            description: `支付订单 ${order.orderNumber}`,
+            relatedId: order.id,
+            status: 'completed'
+          }
+        })
+
+        // 更新订单状态为已支付
+        const updatedOrder = await tx.order.update({
+          where: { id: params.id },
+          data: {
+            paymentMethod: 'wallet',
+            paymentStatus: 'paid',
+            status: 'paid',
+            updatedAt: new Date()
+          }
+        })
+
+        return { updatedWallet, updatedOrder }
+      })
+
+      return successResponse({
+        paymentMethod: 'wallet',
+        orderId: order.id,
+        orderNumber: order.orderNumber,
+        amount: orderAmount,
+        remainingBalance: Number(result.updatedWallet.balance)
+      }, '钱包支付成功')
+    }
+
+    // 支付宝支付逻辑
     if (paymentMethod === 'alipay') {
       try {
         // 使用支付宝服务

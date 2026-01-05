@@ -33,10 +33,23 @@ export async function POST(request: NextRequest) {
       return errorResponse('未登录', 401)
     }
 
-    const { addressId, paymentMethod } = await request.json()
+    const { addressId, paymentMethod, invoice } = await request.json()
 
     if (!addressId) {
       return errorResponse('请选择收货地址')
+    }
+
+    // 验证发票信息
+    if (invoice) {
+      if (!invoice.title || !invoice.type) {
+        return errorResponse('发票信息不完整')
+      }
+      if (invoice.type === 'company' && !invoice.taxNumber) {
+        return errorResponse('企业发票需要提供税号')
+      }
+      if (!invoice.email) {
+        return errorResponse('请提供接收发票的邮箱地址')
+      }
     }
 
     // 获取购物车
@@ -64,7 +77,7 @@ export async function POST(request: NextRequest) {
     // 生成订单号
     const orderNumber = `ORD${Date.now()}${Math.random().toString(36).substr(2, 9).toUpperCase()}`
 
-    // 创建订单
+    // 创建订单（包含发票信息）
     const order = await prisma.order.create({
       data: {
         userId: auth.id,
@@ -81,12 +94,24 @@ export async function POST(request: NextRequest) {
             price: item.product.price,
           })),
         },
+        // 创建发票记录
+        ...(invoice && {
+          invoice: {
+            create: {
+              type: invoice.type,
+              title: invoice.title,
+              taxNumber: invoice.taxNumber || '',
+              email: invoice.email,
+              status: 'pending'
+            }
+          }
+        })
       },
       include: {
         address: true,
         items: {
           include: { product: true },
-        },
+        }
       },
     })
 

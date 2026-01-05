@@ -36,9 +36,52 @@ export async function POST(request: NextRequest) {
     if (verificationResult.verified &&
         (verificationResult.tradeStatus === 'TRADE_SUCCESS' || verificationResult.tradeStatus === 'TRADE_FINISHED')) {
 
-      // 支付成功，更新订单状态
+      const outTradeNo = verificationResult.outTradeNo
+
+      // 先检查是否是充值交易（以transaction ID的格式判断，或查询WalletTransaction表）
+      const walletTransaction = await prisma.walletTransaction.findFirst({
+        where: { id: outTradeNo }
+      })
+
+      if (walletTransaction) {
+        // 处理充值回调
+        if (walletTransaction.status === 'pending') {
+          // 更新钱包余额
+          const wallet = await prisma.wallet.findUnique({
+            where: { userId: walletTransaction.userId }
+          })
+
+          if (wallet) {
+            const newBalance = Number(wallet.balance) + Number(walletTransaction.amount)
+            
+            await prisma.$transaction([
+              // 更新钱包余额
+              prisma.wallet.update({
+                where: { userId: walletTransaction.userId },
+                data: { balance: newBalance }
+              }),
+              // 更新交易状态和余额
+              prisma.walletTransaction.update({
+                where: { id: walletTransaction.id },
+                data: {
+                  status: 'completed',
+                  balance: newBalance
+                }
+              })
+            ])
+
+            console.log(`✅ 充值交易 ${walletTransaction.id} 完成，金额: ¥${walletTransaction.amount}，新余额: ¥${newBalance}`)
+          }
+        } else {
+          console.log(`⚠️ 充值交易 ${walletTransaction.id} 状态已是 ${walletTransaction.status}，跳过处理`)
+        }
+
+        return new NextResponse('success')
+      }
+
+      // 处理订单支付回调
       const order = await prisma.order.findFirst({
-        where: { orderNumber: verificationResult.outTradeNo }
+        where: { orderNumber: outTradeNo }
       })
 
       if (order) {
@@ -53,7 +96,7 @@ export async function POST(request: NextRequest) {
 
         console.log(`✅ 订单 ${order.orderNumber} 支付成功，状态已更新`)
       } else {
-        console.error(`❌ 未找到订单: ${verificationResult.outTradeNo}`)
+        console.error(`❌ 未找到订单或交易记录: ${outTradeNo}`)
       }
 
       // 返回成功响应给支付宝
