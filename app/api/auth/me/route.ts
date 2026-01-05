@@ -1,6 +1,7 @@
 import { NextRequest } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { getAuthFromRequest, successResponse, errorResponse } from '@/lib/api-utils'
+import { getAdminPermissions } from '@/lib/permissions'
 
 export async function GET(request: NextRequest) {
   try {
@@ -28,7 +29,20 @@ export async function GET(request: NextRequest) {
         return errorResponse('管理员不存在或已被禁用', 401)
       }
 
-      return successResponse({ ...admin, type: 'admin' })
+      // 获取管理员权限
+      const permissions = await getAdminPermissions(admin.id)
+
+      return successResponse({ 
+        ...admin, 
+        type: 'admin',
+        permissions: permissions.map(p => ({
+          id: p.id,
+          name: p.name,
+          resource: p.resource,
+          action: p.action,
+          description: p.description
+        }))
+      })
     } else {
       const user = await prisma.user.findUnique({
         where: { id: auth.id },

@@ -1,17 +1,19 @@
 import { NextRequest } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { getAuthFromRequest, successResponse, errorResponse } from '@/lib/api-utils'
+import { successResponse, errorResponse } from '@/lib/api-utils'
+import { checkApiPermission } from '@/lib/api-middleware'
 
 export async function PATCH(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
-  try {
-    const auth = getAuthFromRequest(request)
-    if (!auth || auth.type !== 'admin') {
-      return errorResponse('未授权', 401)
-    }
+  // 检查更新权限
+  const authCheck = await checkApiPermission(request, 'user', 'update')
+  if (!authCheck.authorized) {
+    return authCheck.response!
+  }
 
+  try {
     const { status } = await request.json()
 
     const user = await prisma.user.findUnique({

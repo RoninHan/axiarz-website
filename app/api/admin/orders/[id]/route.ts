@@ -1,17 +1,16 @@
 import { NextRequest } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { getAuthFromRequest, successResponse, errorResponse } from '@/lib/api-utils'
+import { successResponse, errorResponse } from '@/lib/api-utils'
+import { checkApiPermission } from '@/lib/api-middleware'
 
 export async function GET(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
-  try {
-    const auth = getAuthFromRequest(request)
-    if (!auth || auth.type !== 'admin') {
-      return errorResponse('未授权', 401)
-    }
+  const authCheck = await checkApiPermission(request, 'order', 'read')
+  if (!authCheck.authorized) return authCheck.response!
 
+  try {
     const order = await prisma.order.findUnique({
       where: { id: params.id },
       include: {
@@ -20,11 +19,21 @@ export async function GET(
             id: true,
             email: true,
             name: true,
+            phone: true,
           },
         },
         address: true,
         items: {
           include: { product: true },
+        },
+        courierCompany: true,
+        invoice: true,
+        refunds: {
+          orderBy: { createdAt: 'desc' },
+          take: 1,
+        },
+        repairOrders: {
+          orderBy: { createdAt: 'desc' },
         },
       },
     })
@@ -43,14 +52,12 @@ export async function PATCH(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
-  try {
-    const auth = getAuthFromRequest(request)
-    if (!auth || auth.type !== 'admin') {
-      return errorResponse('未授权', 401)
-    }
+  const authCheck = await checkApiPermission(request, 'order', 'update')
+  if (!authCheck.authorized) return authCheck.response!
 
+  try {
     const data = await request.json()
-    const { status, shippingInfo, paymentStatus } = data
+    const { status, shippingInfo, paymentStatus, courierCompanyId } = data
 
     const order = await prisma.order.findUnique({
       where: { id: params.id },
@@ -60,13 +67,15 @@ export async function PATCH(
       return errorResponse('订单不存在', 404)
     }
 
+    const updateData: any = {}
+    if (status) updateData.status = status
+    if (shippingInfo !== undefined) updateData.shippingInfo = shippingInfo
+    if (paymentStatus) updateData.paymentStatus = paymentStatus
+    if (courierCompanyId !== undefined) updateData.courierCompanyId = courierCompanyId
+
     const updated = await prisma.order.update({
       where: { id: params.id },
-      data: {
-        status: status || undefined,
-        shippingInfo: shippingInfo !== undefined ? shippingInfo : undefined,
-        paymentStatus: paymentStatus || undefined,
-      },
+      data: updateData,
     })
 
     return successResponse(updated)

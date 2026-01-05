@@ -1,14 +1,13 @@
 import { NextRequest } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { getAuthFromRequest, successResponse, errorResponse } from '@/lib/api-utils'
+import { successResponse, errorResponse } from '@/lib/api-utils'
+import { checkApiPermission } from '@/lib/api-middleware'
 
 export async function GET(request: NextRequest) {
-  try {
-    const auth = getAuthFromRequest(request)
-    if (!auth || auth.type !== 'admin') {
-      return errorResponse('未授权', 401)
-    }
+  const authCheck = await checkApiPermission(request, 'category', 'read')
+  if (!authCheck.authorized) return authCheck.response!
 
+  try {
     const categories = await prisma.category.findMany({
       orderBy: [{ sortOrder: 'asc' }, { createdAt: 'desc' }],
     })
@@ -20,12 +19,10 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
-  try {
-    const auth = getAuthFromRequest(request)
-    if (!auth || auth.type !== 'admin') {
-      return errorResponse('未授权', 401)
-    }
+  const authCheck = await checkApiPermission(request, 'category', 'create')
+  if (!authCheck.authorized) return authCheck.response!
 
+  try {
     const data = await request.json()
     const { name, description, sortOrder, status } = data
 

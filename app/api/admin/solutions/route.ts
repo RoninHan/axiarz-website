@@ -1,12 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { verifyAdminAuth } from '@/lib/auth'
+import { checkApiPermission } from '@/lib/api-middleware'
 
 // GET - 获取所有解决方案
 export async function GET(req: NextRequest) {
-  try {
-    await verifyAdminAuth(req)
+  const authCheck = await checkApiPermission(req, 'system', 'read')
+  if (!authCheck.authorized) return authCheck.response!
 
+  try {
     const solutions = await prisma.solution.findMany({
       orderBy: [{ sortOrder: 'asc' }, { createdAt: 'desc' }],
     })
@@ -14,14 +15,16 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ success: true, data: solutions })
   } catch (error: any) {
     console.error('Failed to fetch solutions:', error)
-    return NextResponse.json({ success: false, error: error.message }, { status: 401 })
+    return NextResponse.json({ success: false, error: error.message }, { status: 500 })
   }
 }
 
 // POST - 创建解决方案
 export async function POST(req: NextRequest) {
+  const authCheck = await checkApiPermission(req, 'system', 'create')
+  if (!authCheck.authorized) return authCheck.response!
+
   try {
-    await verifyAdminAuth(req)
 
     const body = await req.json()
     const { title, slug, description, content, coverImage, status, sortOrder } = body

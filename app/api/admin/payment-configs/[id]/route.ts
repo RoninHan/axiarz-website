@@ -1,17 +1,16 @@
 import { NextRequest } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { getAuthFromRequest, successResponse, errorResponse } from '@/lib/api-utils'
+import { successResponse, errorResponse } from '@/lib/api-utils'
+import { checkApiPermission } from '@/lib/api-middleware'
 
 export async function GET(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
-  try {
-    const auth = getAuthFromRequest(request)
-    if (!auth || auth.type !== 'admin') {
-      return errorResponse('未授权', 401)
-    }
+  const authCheck = await checkApiPermission(request, 'payment', 'read')
+  if (!authCheck.authorized) return authCheck.response!
 
+  try {
     const paymentConfig = await prisma.paymentConfig.findUnique({
       where: { id: params.id },
     })
@@ -30,12 +29,10 @@ export async function PATCH(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
-  try {
-    const auth = getAuthFromRequest(request)
-    if (!auth || auth.type !== 'admin') {
-      return errorResponse('未授权', 401)
-    }
+  const authCheck = await checkApiPermission(request, 'payment', 'update')
+  if (!authCheck.authorized) return authCheck.response!
 
+  try {
     const data = await request.json()
     const { displayName, enabled, sortOrder, config } = data
 
@@ -72,12 +69,10 @@ export async function DELETE(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
-  try {
-    const auth = getAuthFromRequest(request)
-    if (!auth || auth.type !== 'admin') {
-      return errorResponse('未授权', 401)
-    }
+  const authCheck = await checkApiPermission(request, 'payment', 'delete')
+  if (!authCheck.authorized) return authCheck.response!
 
+  try {
     const paymentConfig = await prisma.paymentConfig.findUnique({
       where: { id: params.id },
     })

@@ -77,3 +77,33 @@ export async function verifyAdminAuth(req: NextRequest) {
   }
 }
 
+// 验证管理员（返回Admin对象或null）
+export async function verifyAdmin(req: NextRequest) {
+  try {
+    const token = req.cookies.get('token')?.value
+    
+    if (!token) {
+      return null
+    }
+
+    const payload = verifyToken(token)
+    
+    if (!payload || payload.type !== 'admin') {
+      return null
+    }
+
+    const admin = await prisma.admin.findUnique({
+      where: { id: payload.id },
+    })
+
+    if (!admin || admin.status !== 'active') {
+      return null
+    }
+
+    return admin
+  } catch (error) {
+    console.error('verifyAdmin error:', error)
+    return null
+  }
+}
+

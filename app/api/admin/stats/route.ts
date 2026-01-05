@@ -1,12 +1,13 @@
 import { NextRequest } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { verifyAdminAuth } from '@/lib/auth'
+import { checkApiPermission } from '@/lib/api-middleware'
 import { NextResponse } from 'next/server'
 
 export async function GET(request: NextRequest) {
+  const authCheck = await checkApiPermission(request, 'system', 'read')
+  if (!authCheck.authorized) return authCheck.response!
+
   try {
-    // 验证管理员权限
-    await verifyAdminAuth(request)
 
     // 用户统计（普通用户）
     const [totalUsers, activeUsers, disabledUsers] = await Promise.all([

@@ -53,6 +53,9 @@ function CheckoutPageContent() {
   })
   const [order, setOrder] = useState<Order | null>(null) // 存储订单信息
   const [cartItems, setCartItems] = useState<CartItem[]>([]) // 存储购物车商品
+  const [couponCode, setCouponCode] = useState('')
+  const [appliedCoupon, setAppliedCoupon] = useState<any>(null)
+  const [verifyingCoupon, setVerifyingCoupon] = useState(false)
   const [loading, setLoading] = useState(true)
   const [submitting, setSubmitting] = useState(false)
   const [messageApi, contextHolder] = message.useMessage()
@@ -158,12 +161,84 @@ function CheckoutPageContent() {
     }
     // 如果是购物车，计算购物车商品总额
     if (cartItems.length > 0) {
+      const subtotal = cartItems.reduce((total, item) => {
+        const price = item.product ? Number(item.product.price) : 0
+        return total + (price * item.quantity)
+      }, 0)
+      
+      // 应用优惠券折扣
+      if (appliedCoupon) {
+        const discount = calculateDiscount(subtotal, appliedCoupon)
+        return Math.max(0, subtotal - discount)
+      }
+      
+      return subtotal
+    }
+    return 0
+  }
+
+  function getOriginalAmount() {
+    if (order) {
+      return Number(order.totalAmount)
+    }
+    if (cartItems.length > 0) {
       return cartItems.reduce((total, item) => {
         const price = item.product ? Number(item.product.price) : 0
         return total + (price * item.quantity)
       }, 0)
     }
     return 0
+  }
+
+  function calculateDiscount(amount: number, coupon: any) {
+    if (coupon.type === 'fixed') {
+      return Number(coupon.value)
+    } else {
+      // 百分比折扣
+      let discount = amount * Number(coupon.value)
+      // 如果有最大折扣限制
+      if (coupon.maxDiscount) {
+        discount = Math.min(discount, Number(coupon.maxDiscount))
+      }
+      return discount
+    }
+  }
+
+  async function handleApplyCoupon() {
+    if (!couponCode.trim()) {
+      messageApi.warning('请输入优惠券代码')
+      return
+    }
+
+    try {
+      setVerifyingCoupon(true)
+      const res = await fetch('/api/client/coupons/verify', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          code: couponCode,
+          orderAmount: getOriginalAmount()
+        })
+      })
+      const data = await res.json()
+      
+      if (data.success) {
+        setAppliedCoupon(data.data)
+        messageApi.success('优惠券应用成功！')
+      } else {
+        messageApi.error(data.error || '优惠券无效')
+      }
+    } catch (error) {
+      messageApi.error('验证优惠券失败')
+    } finally {
+      setVerifyingCoupon(false)
+    }
+  }
+
+  function handleRemoveCoupon() {
+    setAppliedCoupon(null)
+    setCouponCode('')
+    messageApi.info('已移除优惠券')
   }
 
   async function handleSubmit() {
@@ -254,6 +329,7 @@ function CheckoutPageContent() {
         body: JSON.stringify({
           addressId: selectedAddressId,
           paymentMethod: selectedPayment,
+          couponCode: appliedCoupon ? couponCode : undefined,
           invoice: invoice.needInvoice ? {
             type: invoice.type,
             title: invoice.title,
@@ -635,13 +711,67 @@ function CheckoutPageContent() {
               <Card className="bg-white border-2 border-gray-200">
                 <h3 className="text-title-small font-bold mb-6 text-gray-800">订单摘要</h3>
                 
+                {/* 优惠券输入 */}
+                {!orderId && (
+                  <div className="mb-6 pb-6 border-b border-gray-200">
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      优惠券代码
+                    </label>
+                    {appliedCoupon ? (
+                      <div className="bg-green-50 border border-green-200 rounded-lg p-3">
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <div className="font-medium text-green-700">{appliedCoupon.name}</div>
+                            <div className="text-sm text-green-600">
+                              {appliedCoupon.type === 'fixed' 
+                                ? `减 ¥${Number(appliedCoupon.value).toFixed(2)}`
+                                : `${Number(appliedCoupon.value) * 100}% 折扣`
+                              }
+                            </div>
+                          </div>
+                          <button
+                            onClick={handleRemoveCoupon}
+                            className="text-sm text-red-600 hover:text-red-700"
+                          >
+                            移除
+                          </button>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="flex gap-2">
+                        <Input
+                          value={couponCode}
+                          onChange={(e) => setCouponCode(e.target.value.toUpperCase())}
+                          placeholder="输入优惠券代码"
+                          className="flex-1"
+                        />
+                        <Button
+                          variant="outline"
+                          onClick={handleApplyCoupon}
+                          disabled={verifyingCoupon || !couponCode.trim()}
+                        >
+                          {verifyingCoupon ? '验证中...' : '应用'}
+                        </Button>
+                      </div>
+                    )}
+                  </div>
+                )}
+
                 <div className="space-y-4 mb-6">
                   <div className="flex justify-between text-body">
                     <span className="text-gray-600">商品小计</span>
                     <span className="text-gray-800 font-medium">
-                      ¥{getTotalAmount().toFixed(2)}
+                      ¥{getOriginalAmount().toFixed(2)}
                     </span>
                   </div>
+                  {appliedCoupon && (
+                    <div className="flex justify-between text-body">
+                      <span className="text-gray-600">优惠券折扣</span>
+                      <span className="text-green-600 font-medium">
+                        -¥{calculateDiscount(getOriginalAmount(), appliedCoupon).toFixed(2)}
+                      </span>
+                    </div>
+                  )}
                   <div className="flex justify-between text-body">
                     <span className="text-gray-600">配送费用</span>
                     <span className="text-green-600 font-medium">免费</span>
@@ -653,6 +783,11 @@ function CheckoutPageContent() {
                         <div className="text-2xl font-bold text-accent-orange">
                           ¥{getTotalAmount().toFixed(2)}
                         </div>
+                        {appliedCoupon && getOriginalAmount() > getTotalAmount() && (
+                          <div className="text-sm text-gray-500 line-through">
+                            ¥{getOriginalAmount().toFixed(2)}
+                          </div>
+                        )}
                       </div>
                     </div>
                   </div>

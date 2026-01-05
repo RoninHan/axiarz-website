@@ -1,14 +1,16 @@
 import { NextRequest } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { getAuthFromRequest, successResponse, errorResponse } from '@/lib/api-utils'
+import { successResponse, errorResponse } from '@/lib/api-utils'
+import { checkApiPermission } from '@/lib/api-middleware'
 
 export async function GET(request: NextRequest) {
-  try {
-    const auth = getAuthFromRequest(request)
-    if (!auth || auth.type !== 'admin') {
-      return errorResponse('未授权', 401)
-    }
+  // 检查订单读取权限
+  const authCheck = await checkApiPermission(request, 'order', 'read')
+  if (!authCheck.authorized) {
+    return authCheck.response!
+  }
 
+  try {
     const searchParams = request.nextUrl.searchParams
     const status = searchParams.get('status')
     const orderNumber = searchParams.get('orderNumber')

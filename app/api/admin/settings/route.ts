@@ -1,15 +1,14 @@
 import { NextRequest } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { getAuthFromRequest, successResponse, errorResponse } from '@/lib/api-utils'
+import { successResponse, errorResponse } from '@/lib/api-utils'
+import { checkApiPermission } from '@/lib/api-middleware'
 
 // 获取所有设置
 export async function GET(request: NextRequest) {
-  try {
-    const auth = getAuthFromRequest(request)
-    if (!auth || auth.type !== 'admin') {
-      return errorResponse('未授权', 401)
-    }
+  const authCheck = await checkApiPermission(request, 'system', 'read')
+  if (!authCheck.authorized) return authCheck.response!
 
+  try {
     const settings = await prisma.setting.findMany({
       orderBy: { key: 'asc' },
     })
@@ -28,11 +27,10 @@ export async function GET(request: NextRequest) {
 
 // 更新设置
 export async function PUT(request: NextRequest) {
+  const authCheck = await checkApiPermission(request, 'system', 'update')
+  if (!authCheck.authorized) return authCheck.response!
+
   try {
-    const auth = getAuthFromRequest(request)
-    if (!auth || auth.type !== 'admin') {
-      return errorResponse('未授权', 401)
-    }
 
     const { key, value } = await request.json()
 
@@ -55,12 +53,10 @@ export async function PUT(request: NextRequest) {
 
 // 批量更新设置
 export async function POST(request: NextRequest) {
-  try {
-    const auth = getAuthFromRequest(request)
-    if (!auth || auth.type !== 'admin') {
-      return errorResponse('未授权', 401)
-    }
+  const authCheck = await checkApiPermission(request, 'system', 'update')
+  if (!authCheck.authorized) return authCheck.response!
 
+  try {
     const settings = await request.json()
 
     if (!settings || typeof settings !== 'object') {

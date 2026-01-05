@@ -1,14 +1,16 @@
 import { NextRequest } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { getAuthFromRequest, successResponse, errorResponse } from '@/lib/api-utils'
+import { successResponse, errorResponse } from '@/lib/api-utils'
+import { checkApiPermission } from '@/lib/api-middleware'
 
 export async function GET(request: NextRequest) {
-  try {
-    const auth = getAuthFromRequest(request)
-    if (!auth || auth.type !== 'admin') {
-      return errorResponse('未授权', 401)
-    }
+  // 检查读取权限
+  const authCheck = await checkApiPermission(request, 'product', 'read')
+  if (!authCheck.authorized) {
+    return authCheck.response!
+  }
 
+  try {
     const searchParams = request.nextUrl.searchParams
     const search = searchParams.get('search')
     const category = searchParams.get('category')
@@ -46,12 +48,13 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
-  try {
-    const auth = getAuthFromRequest(request)
-    if (!auth || auth.type !== 'admin') {
-      return errorResponse('未授权', 401)
-    }
+  // 检查创建权限
+  const authCheck = await checkApiPermission(request, 'product', 'create')
+  if (!authCheck.authorized) {
+    return authCheck.response!
+  }
 
+  try {
     const data = await request.json()
     const { name, sku, description, content, price, stock, image, images, categoryId, status, featured } = data
 

@@ -1,18 +1,17 @@
 import { NextRequest } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { getAuthFromRequest, successResponse, errorResponse } from '@/lib/api-utils'
+import { successResponse, errorResponse } from '@/lib/api-utils'
+import { checkApiPermission } from '@/lib/api-middleware'
 import { alipayService } from '@/lib/payment/alipay'
 
 export async function PATCH(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
-  try {
-    const auth = getAuthFromRequest(request)
-    if (!auth || auth.type !== 'admin') {
-      return errorResponse('未授权', 401)
-    }
+  const authCheck = await checkApiPermission(request, 'refund', 'update')
+  if (!authCheck.authorized) return authCheck.response!
 
+  try {
     const data = await request.json()
     const { action, adminNote } = data
 

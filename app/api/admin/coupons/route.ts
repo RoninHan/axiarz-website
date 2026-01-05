@@ -1,15 +1,17 @@
 import { NextRequest } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { getAuthFromRequest, successResponse, errorResponse } from '@/lib/api-utils'
+import { successResponse, errorResponse } from '@/lib/api-utils'
+import { checkApiPermission } from '@/lib/api-middleware'
 
 // 获取所有优惠券
 export async function GET(request: NextRequest) {
-  try {
-    const auth = getAuthFromRequest(request)
-    if (!auth || auth.type !== 'admin') {
-      return errorResponse('未授权', 401)
-    }
+  // 检查读取权限
+  const authCheck = await checkApiPermission(request, 'coupon', 'read')
+  if (!authCheck.authorized) {
+    return authCheck.response!
+  }
 
+  try {
     const coupons = await prisma.coupon.findMany({
       orderBy: { createdAt: 'desc' },
       include: {
@@ -27,12 +29,13 @@ export async function GET(request: NextRequest) {
 
 // 创建优惠券
 export async function POST(request: NextRequest) {
-  try {
-    const auth = getAuthFromRequest(request)
-    if (!auth || auth.type !== 'admin') {
-      return errorResponse('未授权', 401)
-    }
+  // 检查创建权限
+  const authCheck = await checkApiPermission(request, 'coupon', 'create')
+  if (!authCheck.authorized) {
+    return authCheck.response!
+  }
 
+  try {
     const {
       code,
       name,

@@ -1,18 +1,17 @@
 import { NextRequest } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { getAuthFromRequest, successResponse, errorResponse } from '@/lib/api-utils'
+import { successResponse, errorResponse } from '@/lib/api-utils'
+import { checkApiPermission } from '@/lib/api-middleware'
 import { promises as fs } from 'fs'
 import path from 'path'
 
 export const runtime = 'nodejs'
 
 export async function GET(request: NextRequest) {
-  try {
-    const auth = getAuthFromRequest(request)
-    if (!auth || auth.type !== 'admin') {
-      return errorResponse('未授权', 401)
-    }
+  const authCheck = await checkApiPermission(request, 'file', 'read')
+  if (!authCheck.authorized) return authCheck.response!
 
+  try {
     const files = await prisma.file.findMany({
       orderBy: { createdAt: 'desc' },
     })
@@ -24,12 +23,10 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
-  try {
-    const auth = getAuthFromRequest(request)
-    if (!auth || auth.type !== 'admin') {
-      return errorResponse('未授权', 401)
-    }
+  const authCheck = await checkApiPermission(request, 'file', 'create')
+  if (!authCheck.authorized) return authCheck.response!
 
+  try {
     const formData = await request.formData()
     const file = formData.get('file')
 
@@ -59,7 +56,7 @@ export async function POST(request: NextRequest) {
         mimeType: file.type || 'application/octet-stream',
         size: buffer.length,
         url,
-        uploadedById: auth.id,
+        uploadedById: authCheck.admin.id,
       },
     })
 
