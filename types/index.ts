@@ -59,6 +59,9 @@ export interface Order {
   orderNumber: string
   status: 'pending' | 'paid' | 'shipped' | 'delivered' | 'cancelled' | 'refunded'
   totalAmount: number
+  originalAmount?: number | null
+  discountAmount?: number | null
+  couponId?: string | null
   paymentMethod: string | null
   paymentStatus: string
   shippingInfo: string | null

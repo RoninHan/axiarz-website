@@ -15,7 +15,8 @@ import {
   UserOutlined,
   FileTextOutlined,
   CalendarOutlined,
-  LeftOutlined
+  LeftOutlined,
+  ToolOutlined
 } from '@ant-design/icons'
 import Card from '@/components/client/Card'
 import Button from '@/components/client/Button'
@@ -28,6 +29,13 @@ function OrderDetailPageContent() {
   const [loading, setLoading] = useState(true)
   const [cancelling, setCancelling] = useState(false)
   const [showCancelModal, setShowCancelModal] = useState(false)
+  const [showRepairModal, setShowRepairModal] = useState(false)
+  const [submittingRepair, setSubmittingRepair] = useState(false)
+  const [repairForm, setRepairForm] = useState({
+    productName: '',
+    issue: '',
+    images: [] as string[]
+  })
   const [messageApi, contextHolder] = message.useMessage()
 
   useEffect(() => {
@@ -120,6 +128,47 @@ function OrderDetailPageContent() {
     }
   }
 
+  async function handleSubmitRepair() {
+    if (!order) return
+    
+    // 验证表单
+    if (!repairForm.productName.trim()) {
+      messageApi.error('请输入产品名称')
+      return
+    }
+    if (!repairForm.issue.trim()) {
+      messageApi.error('请描述问题')
+      return
+    }
+
+    try {
+      setSubmittingRepair(true)
+      const res = await fetch('/api/client/repairs', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          orderId: order.id,
+          productName: repairForm.productName,
+          issue: repairForm.issue,
+          images: repairForm.images
+        })
+      })
+      const data = await res.json()
+
+      if (data.success) {
+        messageApi.success('维修工单已提交')
+        setShowRepairModal(false)
+        setRepairForm({ productName: '', issue: '', images: [] })
+      } else {
+        messageApi.error(data.message || '提交失败')
+      }
+    } catch (error) {
+      messageApi.error('提交维修工单失败')
+    } finally {
+      setSubmittingRepair(false)
+    }
+  }
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -185,15 +234,27 @@ function OrderDetailPageContent() {
             {order.status === 'pending' && (
               <div className="flex gap-3">
                 <Link href={`/checkout?orderId=${order.id}`}>
-                  <Button variant="primary" size="large">
+                  <Button variant="primary" size="medium">
                     <CreditCardOutlined className="mr-2" />
                     立即支付
                   </Button>
                 </Link>
-                <Button variant="outline" size="large" onClick={() => setShowCancelModal(true)}>
+                <Button variant="outline" size="medium" onClick={() => setShowCancelModal(true)}>
                   取消订单
                 </Button>
               </div>
+            )}
+            
+            {/* 已完成订单显示申请维修按钮 */}
+            {order.status === 'delivered' && (
+              <Button 
+                variant="outline" 
+                size="medium" 
+                onClick={() => setShowRepairModal(true)}
+              >
+                <ToolOutlined className="mr-2" />
+                申请维修
+              </Button>
             )}
           </div>
 
@@ -412,6 +473,67 @@ function OrderDetailPageContent() {
             <p className="text-body font-mono">{order?.orderNumber}</p>
             <p className="text-caption text-neutral-medium mt-3 mb-1">订单金额</p>
             <p className="text-body font-bold text-accent-orange">¥{Number(order?.totalAmount).toFixed(2)}</p>
+          </div>
+        </div>
+      </Modal>
+
+      {/* 申请维修弹窗 */}
+      <Modal
+        title={
+          <div className="flex items-center gap-2">
+            <ToolOutlined className="text-accent-orange" />
+            <span>申请维修</span>
+          </div>
+        }
+        open={showRepairModal}
+        onOk={handleSubmitRepair}
+        onCancel={() => {
+          setShowRepairModal(false)
+          setRepairForm({ productName: '', issue: '', images: [] })
+        }}
+        okText="提交工单"
+        cancelText="取消"
+        okButtonProps={{ loading: submittingRepair }}
+        width={600}
+      >
+        <div className="py-4 space-y-4">
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
+            <p className="text-sm text-blue-800">
+              <strong>订单号：</strong>{order?.orderNumber}
+            </p>
+            <p className="text-sm text-blue-700 mt-1">
+              请详细描述产品问题，我们的客服团队会尽快为您处理。
+            </p>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              产品名称 <span className="text-red-500">*</span>
+            </label>
+            <input
+              type="text"
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-accent-orange focus:border-transparent"
+              placeholder="请输入需要维修的产品名称"
+              value={repairForm.productName}
+              onChange={(e) => setRepairForm({ ...repairForm, productName: e.target.value })}
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              问题描述 <span className="text-red-500">*</span>
+            </label>
+            <textarea
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-accent-orange focus:border-transparent"
+              rows={4}
+              placeholder="请详细描述产品存在的问题..."
+              value={repairForm.issue}
+              onChange={(e) => setRepairForm({ ...repairForm, issue: e.target.value })}
+            />
+          </div>
+
+          <div className="text-sm text-gray-500">
+            <p>提交后，您可以在 <Link href="/repairs" className="text-accent-orange hover:underline">我的维修工单</Link> 页面查看处理进度。</p>
           </div>
         </div>
       </Modal>

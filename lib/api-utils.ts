@@ -7,7 +7,19 @@ export function getTokenFromRequest(request: NextRequest): string | null {
   if (authHeader?.startsWith('Bearer ')) {
     return authHeader.substring(7)
   }
-  return request.cookies.get('token')?.value || null
+  
+  // 检查请求头中的认证类型标识
+  const authType = request.headers.get('X-Auth-Type')
+  
+  // 根据路径或认证类型选择对应的 token
+  if (authType === 'admin' || request.nextUrl.pathname.startsWith('/api/admin')) {
+    return request.cookies.get('admin_token')?.value || null
+  } else {
+    return request.cookies.get('client_token')?.value || null
+  }
+  
+  // 兼容旧版本的通用 token
+  // return request.cookies.get('token')?.value || null
 }
 
 export function getAuthFromRequest(request: NextRequest): JWTPayload | null {

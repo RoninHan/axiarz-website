@@ -2,6 +2,7 @@
 
 import React, { createContext, useContext, useState, useEffect } from 'react'
 import { User } from '@/types'
+import { usePathname } from 'next/navigation'
 
 interface AuthContextType {
   user: User | null
@@ -18,6 +19,11 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined)
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
   const [loading, setLoading] = useState(true)
+  const pathname = usePathname()
+  
+  // 判断当前是否在 admin 路径下
+  const isAdminPath = pathname?.startsWith('/admin')
+  const tokenName = isAdminPath ? 'admin_token' : 'client_token'
 
   useEffect(() => {
     // 只在客户端检查认证状态
@@ -26,13 +32,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     } else {
       setLoading(false)
     }
-  }, [])
+  }, [pathname])
 
   async function checkAuth() {
     try {
-      // 从cookie中读取token，通过API验证
+      // 从cookie中读取对应的token
       const res = await fetch('/api/auth/me', {
         credentials: 'include',
+        headers: {
+          'X-Auth-Type': isAdminPath ? 'admin' : 'client'
+        }
       })
       const data = await res.json()
       if (data.success && data.data) {
@@ -51,18 +60,25 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       const res = await fetch('/api/auth/login', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'X-Auth-Type': isAdminPath ? 'admin' : 'client'
+        },
         credentials: 'include',
-        body: JSON.stringify({ email, password, type: 'user' }),
+        body: JSON.stringify({ 
+          email, 
+          password, 
+          type: isAdminPath ? 'admin' : 'user' 
+        }),
       })
       const data = await res.json()
 
       if (data.success) {
-        // 保存token到cookie
+        // 保存token到对应的cookie
         if (typeof document !== 'undefined') {
-          document.cookie = `token=${data.data.token}; path=/; max-age=604800`
+          document.cookie = `${tokenName}=${data.data.token}; path=/; max-age=604800; SameSite=Strict`
         }
-        setUser(data.data.user)
+        setUser(data.data.user || data.data.admin)
         return { success: true }
       } else {
         return { success: false, error: data.error || '登录失败' }
@@ -76,16 +92,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       const res = await fetch('/api/auth/register', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'X-Auth-Type': 'client'
+        },
         credentials: 'include',
         body: JSON.stringify({ email, password, name }),
       })
       const data = await res.json()
 
       if (data.success) {
-        // 保存token到cookie
+        // 注册只用于 client，保存到 client_token
         if (typeof document !== 'undefined') {
-          document.cookie = `token=${data.data.token}; path=/; max-age=604800`
+          document.cookie = `client_token=${data.data.token}; path=/; max-age=604800; SameSite=Strict`
         }
         setUser(data.data.user)
         return { success: true }
@@ -99,6 +118,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   function logout() {
     if (typeof document !== 'undefined') {
+      // 清除对应的 token
+      document.cookie = `${tokenName}=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT`
+      // 为了安全，也清除旧的通用 token（兼容旧版本）
       document.cookie = 'token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT'
     }
     setUser(null)
@@ -108,6 +130,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       const res = await fetch('/api/auth/me', {
         credentials: 'include',
+        headers: {
+          'X-Auth-Type': isAdminPath ? 'admin' : 'client'
+        }
       })
       const data = await res.json()
       if (data.success && data.data) {

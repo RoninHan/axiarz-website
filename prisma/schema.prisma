@@ -27,6 +27,10 @@ model User {
   orders     Order[]
   cartItems  CartItem[]
   refunds    RefundRequest[]
+  wallet     Wallet?
+  transactions WalletTransaction[]
+  coupons    UserCoupon[]
+  repairOrders RepairOrder[]
 
   @@map("users")
 }
@@ -132,23 +136,31 @@ model Address {
 }
 
 model Order {
-  id          String   @id @default(uuid())
-  userId      String
-  addressId   String
-  orderNumber String   @unique
-  status      String   @default("pending") // pending, paid, shipped, delivered, cancelled
-  totalAmount Decimal  @db.Decimal(10, 2)
+  id            String   @id @default(uuid())
+  userId        String
+  addressId     String
+  orderNumber   String   @unique
+  status        String   @default("pending") // pending, paid, shipped, delivered, cancelled
+  totalAmount   Decimal  @db.Decimal(10, 2)
+  originalAmount Decimal? @db.Decimal(10, 2) // 原始金额（使用优惠券前）
+  discountAmount Decimal? @db.Decimal(10, 2) // 优惠金额
+  couponId      String?  // 使用的优惠券ID
   paymentMethod String?
-  paymentStatus String @default("unpaid") // unpaid, paid, refunded
-  shippingInfo String? // 物流信息
-  notes       String?  @db.Text
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  paymentStatus String   @default("unpaid") // unpaid, paid, refunded
+  shippingInfo  String?  // 物流信息
+  courierCompanyId String? // 物流公司ID
+  notes         String?  @db.Text
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
 
-  user    User            @relation(fields: [userId], references: [id], onDelete: Cascade)
-  address Address         @relation(fields: [addressId], references: [id])
-  items   OrderItem[]
-  refunds RefundRequest[]
+  user         User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  address      Address         @relation(fields: [addressId], references: [id])
+  courierCompany CourierCompany? @relation(fields: [courierCompanyId], references: [id])
+  items        OrderItem[]
+  refunds      RefundRequest[]
+  userCoupon   UserCoupon?
+  repairOrders RepairOrder[]
+  invoice      Invoice?
 
   @@map("orders")
 }
@@ -277,4 +289,148 @@ model HelpArticle {
   updatedAt   DateTime @updatedAt
 
   @@map("help_articles")
+}
+
+// 用户钱包
+model Wallet {
+  id        String   @id @default(uuid())
+  userId    String   @unique
+  balance   Decimal  @db.Decimal(10, 2) @default(0)
+  frozen    Decimal  @db.Decimal(10, 2) @default(0) // 冻结金额
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("wallets")
+}
+
+// 钱包交易记录
+model WalletTransaction {
+  id          String   @id @default(uuid())
+  userId      String
+  type        String   // RECHARGE(充值), WITHDRAW(提现), PAYMENT(支付), REFUND(退款)
+  amount      Decimal  @db.Decimal(10, 2)
+  balance     Decimal  @db.Decimal(10, 2) // 交易后余额
+  description String   // 交易描述
+  relatedId   String?  // 关联订单ID等
+  status      String   @default("completed") // pending, completed, failed
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("wallet_transactions")
+}
+
+// 优惠券模板
+model Coupon {
+  id          String   @id @default(uuid())
+  code        String   @unique // 优惠券代码
+  name        String   // 优惠券名称
+  type        String   // fixed(固定金额), percent(百分比)
+  value       Decimal  @db.Decimal(10, 2) // 折扣值
+  minAmount   Decimal  @db.Decimal(10, 2) @default(0) // 最低消费金额
+  maxDiscount Decimal? @db.Decimal(10, 2) // 最大折扣金额（百分比优惠券用）
+  totalCount  Int      // 总发放数量
+  usedCount   Int      @default(0) // 已使用数量
+  validFrom   DateTime // 有效期开始
+  validTo     DateTime // 有效期结束
+  status      String   @default("active") // active, inactive
+  description String?  // 优惠券描述
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  userCoupons UserCoupon[]
+
+  @@map("coupons")
+}
+
+// 用户优惠券
+model UserCoupon {
+  id        String    @id @default(uuid())
+  userId    String
+  couponId  String
+  orderId   String?   @unique // 使用的订单ID
+  status    String    @default("unused") // unused, used, expired
+  usedAt    DateTime? // 使用时间
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  user   User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  coupon Coupon  @relation(fields: [couponId], references: [id], onDelete: Cascade)
+  order  Order?  @relation(fields: [orderId], references: [id])
+
+  @@map("user_coupons")
+}
+
+// 系统设置
+model SystemSetting {
+  id        String   @id @default(uuid())
+  key       String   @unique // 设置键名
+  value     String   // 设置值（JSON格式）
+  description String? // 设置描述
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("system_settings")
+}
+
+// 维修工单
+model RepairOrder {
+  id            String    @id @default(uuid())
+  userId        String
+  orderId       String    // 关联的订单ID
+  orderNumber   String    @unique // 维修工单号
+  productName   String    // 产品名称
+  issue         String    // 问题描述
+  images        String[]  @default([]) // 问题图片
+  status        String    @default("pending") // pending(待处理), processing(处理中), completed(已完成), rejected(已拒绝)
+  adminReply    String?   // 管理员回复
+  solution      String?   // 解决方案
+  completedAt   DateTime? // 完成时间
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  order Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  @@map("repair_orders")
+}
+
+// 发票管理
+model Invoice {
+  id            String   @id @default(uuid())
+  orderId       String   @unique // 关联订单（一个订单只能有一张发票）
+  type          String   // personal(个人), company(企业)
+  title         String   // 发票抬头
+  taxNumber     String?  // 税号（企业必填）
+  email         String?  // 接收邮箱
+  status        String   @default("pending") // pending(待开票), processing(处理中), completed(已开票), rejected(已拒绝)
+  invoiceNumber String?  // 发票号码
+  invoiceUrl    String?  // 发票文件URL
+  rejectionReason String? // 拒绝原因
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  order Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  @@map("invoices")
+}
+
+// 物流公司管理
+model CourierCompany {
+  id        String   @id @default(uuid())
+  name      String   @unique // 公司名称
+  code      String   @unique // 公司代码
+  website   String?  // 官网
+  phone     String?  // 客服电话
+  sortOrder Int      @default(0) // 排序
+  status    String   @default("active") // active(启用), inactive(停用)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  orders Order[]
+
+  @@map("courier_companies")
 }
