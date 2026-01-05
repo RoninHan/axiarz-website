@@ -2,7 +2,8 @@
 
 import { useRouter, usePathname } from 'next/navigation'
 import { Layout, Button, Modal, Space, Typography, Breadcrumb } from 'antd'
-import { LogoutOutlined, ExclamationCircleOutlined, HomeOutlined } from '@ant-design/icons'
+import { LogoutOutlined, ExclamationCircleOutlined, HomeOutlined, UserOutlined } from '@ant-design/icons'
+import { useAuth } from '@/contexts/AuthContext'
 
 const { Header } = Layout
 const { Text } = Typography
@@ -10,6 +11,7 @@ const { Text } = Typography
 export default function AdminHeader() {
   const router = useRouter()
   const pathname = usePathname()
+  const { user } = useAuth()
 
   // 生成面包屑
   const getBreadcrumbs = () => {
@@ -58,8 +60,8 @@ export default function AdminHeader() {
       okText: '确定',
       cancelText: '取消',
       onOk() {
-        // 清除 token
-        document.cookie = 'token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT'
+        // 清除管理员 token
+        document.cookie = 'admin_token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT'
         window.location.href = '/admin/login'
       }
     })
@@ -81,8 +83,13 @@ export default function AdminHeader() {
         items={getBreadcrumbs()}
         style={{ fontSize: '14px' }}
       />
-      <Space>
-        <Text type="secondary" style={{ fontSize: '14px' }}>管理员</Text>
+      <Space size="middle">
+        <Space size="small">
+          <UserOutlined style={{ color: '#1890ff' }} />
+          <Text strong style={{ fontSize: '14px' }}>
+            {user?.name || user?.email || '管理员'}
+          </Text>
+        </Space>
         <Button
           type="text"
           danger

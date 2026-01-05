@@ -11,20 +11,22 @@ export function getTokenFromRequest(request: NextRequest): string | null {
   // 检查请求头中的认证类型标识
   const authType = request.headers.get('X-Auth-Type')
   
-  // 根据路径或认证类型选择对应的 token
-  if (authType === 'admin' || request.nextUrl.pathname.startsWith('/api/admin')) {
+  // 根据认证类型选择对应的 token（优先使用请求头标识）
+  if (authType === 'admin') {
     return request.cookies.get('admin_token')?.value || null
-  } else if (authType === 'user' || request.nextUrl.pathname.startsWith('/api/client')) {
+  } else if (authType === 'client' || authType === 'user') {
     return request.cookies.get('client_token')?.value || null
   }
   
-  // 对于 /api/auth/me 等公共接口，先尝试 admin_token，再尝试 client_token
-  const adminToken = request.cookies.get('admin_token')?.value
-  if (adminToken) return adminToken
+  // 根据路径选择对应的 token
+  if (request.nextUrl.pathname.startsWith('/api/admin')) {
+    return request.cookies.get('admin_token')?.value || null
+  } else if (request.nextUrl.pathname.startsWith('/api/client')) {
+    return request.cookies.get('client_token')?.value || null
+  }
   
-  const clientToken = request.cookies.get('client_token')?.value
-  if (clientToken) return clientToken
-  
+  // 对于其他公共接口（如 /api/auth/*），不应该自动选择
+  // 如果前端没有明确指定 X-Auth-Type，返回 null
   return null
 }
 

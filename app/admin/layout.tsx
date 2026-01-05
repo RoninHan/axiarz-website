@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { usePathname, useRouter } from 'next/navigation'
 import { Layout, Spin } from 'antd'
+import { AuthProvider } from '@/contexts/AuthContext'
 import AdminSidebar from '@/components/admin/AdminSidebar'
 import AdminHeader from '@/components/admin/AdminHeader'
 
@@ -32,6 +33,9 @@ export default function AdminLayout({
         console.log('检查管理员认证状态...')
         const res = await fetch('/api/auth/me', {
           credentials: 'include', // 确保发送 cookie
+          headers: {
+            'X-Auth-Type': 'admin', // 明确指定为管理员认证
+          },
         })
         const data = await res.json()
         console.log('认证检查结果:', data)
@@ -57,7 +61,11 @@ export default function AdminLayout({
 
   // 登录页面不显示侧边栏和头部
   if (isLoginPage) {
-    return <>{children}</>
+    return (
+      <AuthProvider>
+        {children}
+      </AuthProvider>
+    )
   }
 
   // 加载中显示
@@ -96,23 +104,25 @@ export default function AdminLayout({
 
   // 其他管理页面显示完整布局
   return (
-    <Layout style={{ minHeight: '100vh' }}>
-      <AdminSidebar />
-      <Layout style={{ marginLeft: 240 }}>
-        <AdminHeader />
-        <Content
-          style={{
-            margin: '24px',
-            padding: '24px',
-            background: '#fff',
-            borderRadius: '12px',
-            minHeight: 'calc(100vh - 88px)',
-          }}
-        >
-          {children}
-        </Content>
+    <AuthProvider>
+      <Layout style={{ minHeight: '100vh' }}>
+        <AdminSidebar />
+        <Layout style={{ marginLeft: 240 }}>
+          <AdminHeader />
+          <Content
+            style={{
+              margin: '24px',
+              padding: '24px',
+              background: '#fff',
+              borderRadius: '12px',
+              minHeight: 'calc(100vh - 88px)',
+            }}
+          >
+            {children}
+          </Content>
+        </Layout>
       </Layout>
-    </Layout>
+    </AuthProvider>
   )
 }
 

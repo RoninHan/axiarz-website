@@ -21,6 +21,7 @@ import {
 import Card from '@/components/client/Card'
 import Button from '@/components/client/Button'
 import ProtectedRoute from '@/components/client/ProtectedRoute'
+import ClientDownloadContractButton from '@/components/client/ClientDownloadContractButton'
 import { Order } from '@/types'
 
 function OrderDetailPageContent() {
@@ -306,6 +307,13 @@ function OrderDetailPageContent() {
                 <Button variant="outline" size="medium" onClick={() => setShowCancelModal(true)}>
                   取消订单
                 </Button>
+                <ClientDownloadContractButton 
+                  orderId={order.id} 
+                  orderNumber={order.orderNumber}
+                  buttonText="下载合同"
+                  variant="outline"
+                  size="medium"
+                />
               </div>
             )}
             
@@ -331,19 +339,35 @@ function OrderDetailPageContent() {
                     申请发票
                   </Button>
                 )}
+                <ClientDownloadContractButton 
+                  orderId={order.id} 
+                  orderNumber={order.orderNumber}
+                  buttonText="下载合同"
+                  variant="outline"
+                  size="medium"
+                />
               </div>
             )}
             
             {/* 已支付订单也可以申请发票 */}
             {(order.status === 'paid' || order.status === 'shipped') && order.paymentStatus === 'paid' && !order.invoice && (
-              <Button 
-                variant="primary" 
-                size="medium" 
-                onClick={() => setShowInvoiceModal(true)}
-              >
-                <FileTextOutlined className="mr-2" />
-                申请发票
-              </Button>
+              <div className="flex gap-3">
+                <Button 
+                  variant="primary" 
+                  size="medium" 
+                  onClick={() => setShowInvoiceModal(true)}
+                >
+                  <FileTextOutlined className="mr-2" />
+                  申请发票
+                </Button>
+                <ClientDownloadContractButton 
+                  orderId={order.id} 
+                  orderNumber={order.orderNumber}
+                  buttonText="下载合同"
+                  variant="outline"
+                  size="medium"
+                />
+              </div>
             )}
           </div>
 
@@ -355,22 +379,22 @@ function OrderDetailPageContent() {
                 {
                   title: <span className="text-gray-800">提交订单</span>,
                   icon: <ShoppingOutlined />,
-                  description: order.createdAt ? <span className="text-gray-500">{new Date(order.createdAt).toLocaleString('zh-CN', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' })}</span> : '',
+                  content: order.createdAt ? <span className="text-gray-500">{new Date(order.createdAt).toLocaleString('zh-CN', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' })}</span> : '',
                 },
                 {
                   title: <span className="text-gray-800">支付完成</span>,
                   icon: <CreditCardOutlined />,
-                  description: '',
+                  content: '',
                 },
                 {
                   title: <span className="text-gray-800">商品发货</span>,
                   icon: <RocketOutlined />,
-                  description: '',
+                  content: '',
                 },
                 {
                   title: <span className="text-gray-800">确认收货</span>,
                   icon: <CheckCircleOutlined />,
-                  description: '',
+                  content: '',
                 },
               ]}
               className="px-8"

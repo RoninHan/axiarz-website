@@ -23,6 +23,7 @@ import {
   CarOutlined,
   TeamOutlined,
   SafetyOutlined,
+  FormOutlined,
 } from '@ant-design/icons'
 
 const { Sider } = Layout
@@ -60,7 +61,11 @@ export default function AdminSidebar() {
 
   const fetchCurrentUser = async () => {
     try {
-      const res = await fetch('/api/auth/me')
+      const res = await fetch('/api/auth/me', {
+        headers: {
+          'X-Auth-Type': 'admin',
+        },
+      })
       const data = await res.json()
       if (data.success) {
         setCurrentUser(data.data)
@@ -225,6 +230,13 @@ export default function AdminSidebar() {
       label: '邮件配置', 
       icon: <MailOutlined />, 
       superAdminOnly: true
+    },
+    { 
+      key: '/admin/contract-template', 
+      label: '合同模板', 
+      icon: <FormOutlined />, 
+      resource: 'system',
+      action: 'manage'
     },
     { 
       key: '/admin/settings', 

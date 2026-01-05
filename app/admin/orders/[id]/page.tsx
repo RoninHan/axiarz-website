@@ -6,6 +6,7 @@ import { message, Descriptions, Tag, Table, Button, Modal, Select, Input, Steps,
 import { ArrowLeftOutlined, SendOutlined } from '@ant-design/icons'
 import Link from 'next/link'
 import AdminCard from '@/components/admin/AdminCard'
+import DownloadContractButton from '@/components/DownloadContractButton'
 
 export default function OrderDetailPage() {
   const params = useParams()
@@ -150,6 +151,14 @@ export default function OrderDetailPage() {
               <p className="text-gray-600 mt-1">订单号: {order.orderNumber}</p>
             </div>
             <div className="flex gap-2">
+              <DownloadContractButton 
+                orderId={order.id} 
+                orderNumber={order.orderNumber}
+                isAdmin={true}
+                buttonText="下载合同"
+                type="default"
+                size="large"
+              />
               {order.status === 'paid' && (
                 <Button 
                   type="primary" 
