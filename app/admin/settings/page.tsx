@@ -73,7 +73,6 @@ export default function SettingsPage() {
           logo: data.data.logo || '',
           heroImage: data.data.heroImage || '',
           companyName: data.data.companyName || 'Axiarz',
-          order_contract_template: data.data.order_contract_template || '',
           heroTitle: data.data.heroTitle || '',
           heroSubtitle: data.data.heroSubtitle || '',
           heroDescription: data.data.heroDescription || '',
@@ -502,16 +501,6 @@ export default function SettingsPage() {
               </Form.Item>
             </Col>
           </Row>
-            <Form.Item
-              label="合同模板 (HTML)"
-              name="order_contract_template"
-              extra="管理员可在此处填写合同的 HTML 模板，使用 {{placeholder}} 插入数据。示例占位符：{{orderNumber}}、{{user.name}}、{{address.detail}}、{{itemsHtml}}。"
-            >
-              <TextArea
-                placeholder="在此处粘贴合同 HTML 模板，或留空使用默认模板"
-                rows={8}
-              />
-            </Form.Item>
         </Form>
       </Card>
 

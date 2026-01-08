@@ -19,7 +19,7 @@ export async function POST(request: NextRequest) {
     // 验证订单是否存在且属于当前用户
     const order = await prisma.order.findUnique({
       where: { id: orderId },
-      include: { refundRequests: true }
+      include: { refunds: true }
     })
 
     if (!order || order.userId !== auth.id) {
@@ -32,7 +32,7 @@ export async function POST(request: NextRequest) {
     }
 
     // 检查是否已有未处理的退款申请
-    const pendingRefund = order.refundRequests?.find(r => r.status === 'pending')
+    const pendingRefund = order.refunds?.find(r => r.status === 'pending')
     if (pendingRefund) {
       return errorResponse('您已有未处理的退款申请', 400)
     }

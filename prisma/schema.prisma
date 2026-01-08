@@ -434,19 +434,3 @@ model CourierCompany {
 
   @@map("courier_companies")
 }
-
-// 合同模板管理
-model ContractTemplate {
-  id          String   @id @default(uuid())
-  name        String   // 模板名称
-  type        String   @default("order") // order(订单合同), custom(自定义)
-  htmlContent String   @db.Text // HTML模板内容
-  cssContent  String?  @db.Text // CSS样式
-  isDefault   Boolean  @default(false) // 是否默认模板
-  status      String   @default("active") // active(启用), inactive(停用)
-  description String?  // 模板描述
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  @@map("contract_templates")
-}

@@ -232,9 +232,9 @@ export default function AdminSidebar() {
       superAdminOnly: true
     },
     { 
-      key: '/admin/contract-template', 
-      label: '合同模板', 
-      icon: <FormOutlined />, 
+      key: '/admin/contract-config', 
+      label: '合同配置', 
+      icon: <FileTextOutlined />, 
       resource: 'system',
       action: 'manage'
     },

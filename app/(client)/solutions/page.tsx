@@ -40,12 +40,12 @@ export default function SolutionsPage() {
   // 获取解决方案的图标
   const getIconForIndex = (index: number) => {
     const icons = [
-      <RocketOutlined className="text-4xl" />,
-      <ThunderboltOutlined className="text-4xl" />,
-      <GlobalOutlined className="text-4xl" />,
-      <BulbOutlined className="text-4xl" />,
-      <TeamOutlined className="text-4xl" />,
-      <SafetyOutlined className="text-4xl" />,
+      <RocketOutlined key="rocket" className="text-4xl" />,
+      <ThunderboltOutlined key="thunder" className="text-4xl" />,
+      <GlobalOutlined key="global" className="text-4xl" />,
+      <BulbOutlined key="bulb" className="text-4xl" />,
+      <TeamOutlined key="team" className="text-4xl" />,
+      <SafetyOutlined key="safety" className="text-4xl" />,
     ]
     return icons[index % icons.length]
   }

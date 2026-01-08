@@ -12,9 +12,13 @@ export default function ClientLayout({
   return (
     <AuthProvider>
       <div className="min-h-screen flex flex-col" style={{ backgroundColor: '#2D2D2D' }}>
-        <ClientNavbar />
+        <div className="print:hidden">
+          <ClientNavbar />
+        </div>
         <main className="flex-grow">{children}</main>
-        <ClientFooter />
+        <div className="print:hidden">
+          <ClientFooter />
+        </div>
       </div>
     </AuthProvider>
   )

@@ -21,7 +21,6 @@ import {
 import Card from '@/components/client/Card'
 import Button from '@/components/client/Button'
 import ProtectedRoute from '@/components/client/ProtectedRoute'
-import ClientDownloadContractButton from '@/components/client/ClientDownloadContractButton'
 import { Order } from '@/types'
 
 function OrderDetailPageContent() {
@@ -307,13 +306,6 @@ function OrderDetailPageContent() {
                 <Button variant="outline" size="medium" onClick={() => setShowCancelModal(true)}>
                   取消订单
                 </Button>
-                <ClientDownloadContractButton 
-                  orderId={order.id} 
-                  orderNumber={order.orderNumber}
-                  buttonText="下载合同"
-                  variant="outline"
-                  size="medium"
-                />
               </div>
             )}
             
@@ -339,34 +331,41 @@ function OrderDetailPageContent() {
                     申请发票
                   </Button>
                 )}
-                <ClientDownloadContractButton 
-                  orderId={order.id} 
-                  orderNumber={order.orderNumber}
-                  buttonText="下载合同"
-                  variant="outline"
-                  size="medium"
-                />
+                {/* 查看合同按钮 - 仅支付完成后显示 */}
+                {order.paymentStatus === 'paid' && (
+                  <Link href={`/orders/${order.id}/contract`}>
+                    <Button variant="outline" size="medium">
+                      <FileTextOutlined className="mr-2" />
+                      查看合同
+                    </Button>
+                  </Link>
+                )}
               </div>
             )}
             
             {/* 已支付订单也可以申请发票 */}
-            {(order.status === 'paid' || order.status === 'shipped') && order.paymentStatus === 'paid' && !order.invoice && (
+            {(order.status === 'paid' || order.status === 'shipped') && (
               <div className="flex gap-3">
-                <Button 
-                  variant="primary" 
-                  size="medium" 
-                  onClick={() => setShowInvoiceModal(true)}
-                >
-                  <FileTextOutlined className="mr-2" />
-                  申请发票
-                </Button>
-                <ClientDownloadContractButton 
-                  orderId={order.id} 
-                  orderNumber={order.orderNumber}
-                  buttonText="下载合同"
-                  variant="outline"
-                  size="medium"
-                />
+                {/* 申请发票按钮 */}
+                {order.paymentStatus === 'paid' && !order.invoice && (
+                  <Button 
+                    variant="primary" 
+                    size="medium" 
+                    onClick={() => setShowInvoiceModal(true)}
+                  >
+                    <FileTextOutlined className="mr-2" />
+                    申请发票
+                  </Button>
+                )}
+                {/* 查看合同按钮 - 仅支付完成后显示 */}
+                {order.paymentStatus === 'paid' && (
+                  <Link href={`/orders/${order.id}/contract`}>
+                    <Button variant="outline" size="medium">
+                      <FileTextOutlined className="mr-2" />
+                      查看合同
+                    </Button>
+                  </Link>
+                )}
               </div>
             )}
           </div>

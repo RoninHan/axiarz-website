@@ -93,7 +93,7 @@ function InvoicesPageContent() {
                 description={
                   <div>
                     <p className="text-gray-500 mb-4">暂无发票记录</p>
-                    <p className="text-sm text-gray-400">在订单结算时勾选"需要开具发票"即可申请发票</p>
+                    <p className="text-sm text-gray-400">在订单结算时勾选&ldquo;需要开具发票&rdquo;即可申请发票</p>
                   </div>
                 }
               >

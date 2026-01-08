@@ -116,6 +116,26 @@ export interface Invoice {
   updatedAt: Date
 }
 
+// 退款申请类型
+export interface RefundRequest {
+  id: string
+  orderId: string
+  userId: string
+  reason: string
+  amount: number
+  refundMethod: 'original' | 'bank'
+  bankName?: string | null
+  bankAccount?: string | null
+  accountName?: string | null
+  status: 'pending' | 'approved' | 'rejected' | 'completed'
+  adminNote?: string | null
+  refundTime?: Date | null
+  createdAt: Date
+  updatedAt: Date
+  order?: Order
+  user?: User
+}
+
 // 购物车项类型
 export interface CartItem {
   id: string
