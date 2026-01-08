@@ -1,6 +1,44 @@
 # Axiarz Website - 科技产品独立站
 
+![Docker Build](https://github.com/RoninHan/axiarz-website/actions/workflows/docker-publish.yml/badge.svg)
+[![Docker Hub](https://img.shields.io/docker/v/roninwin/axiarz-website?label=Docker%20Hub&logo=docker)](https://hub.docker.com/r/roninwin/axiarz-website)
+[![Docker Image Size](https://img.shields.io/docker/image-size/roninwin/axiarz-website/latest?logo=docker)](https://hub.docker.com/r/roninwin/axiarz-website)
+
 基于 Next.js 14.0.3 (App Router)、Tailwind CSS 3.4.1、TypeScript 5.2.2、PostgreSQL 16.1 的完整独立站项目。
+
+## 快速开始
+
+### 🐳 使用 Docker（推荐）
+
+```bash
+# 拉取最新镜像
+docker pull roninwin/axiarz-website:latest
+
+# 运行容器
+docker run -d -p 3000:3000 \
+  -e DATABASE_URL="postgresql://user:pass@host:5432/db" \
+  -e NEXTAUTH_SECRET="your-secret" \
+  roninwin/axiarz-website:latest
+```
+
+### 💻 本地开发
+
+```bash
+# 克隆仓库
+git clone https://github.com/RoninHan/axiarz-website.git
+cd axiarz-website
+
+# 安装依赖
+npm install
+
+# 配置环境变量
+cp env.example .env
+
+# 启动开发服务器
+npm run dev
+```
+
+查看更多部署方式：[DEPLOYMENT.md](./DEPLOYMENT.md)
 
 ## 技术栈
 
@@ -11,6 +49,7 @@
 - **ORM**: Prisma 5.10.2
 - **认证**: JWT (jsonwebtoken 9.0.2)
 - **图表**: Chart.js 4.4.8
+- **容器化**: Docker + Multi-arch support (AMD64/ARM64)
 
 ## 功能特性
 
@@ -148,7 +187,9 @@ npm start
 - **圆角**: 4px
 - **间距**: 模块间距 30px-80px，组件内间距 20px
 
-## 开发脚本
+## 开发与部署
+
+### 📝 开发脚本
 
 ```bash
 # 开发模式
@@ -173,12 +214,72 @@ npm run db:push
 npm run db:seed
 ```
 
+### 🚀 部署方式
+
+#### Docker 部署（推荐）
+
+```bash
+# 方式 1: 使用预构建镜像
+docker pull roninwin/axiarz-website:latest
+docker run -d -p 3000:3000 \
+  -e DATABASE_URL="..." \
+  roninwin/axiarz-website:latest
+
+# 方式 2: 使用 docker-compose
+docker-compose up -d
+```
+
+#### GitHub Actions 自动部署
+
+本项目已配置 GitHub Actions 自动构建和推送 Docker 镜像：
+
+- ✅ 推送到 main 分支自动构建
+- ✅ 创建版本标签自动发布
+- ✅ 支持 AMD64 和 ARM64 架构
+- ✅ 自动推送到 Docker Hub 和 GHCR
+
+**设置步骤**（5分钟）：
+1. 在 Docker Hub 创建 Access Token
+2. 在 GitHub 仓库添加 Secrets（DOCKERHUB_USERNAME 和 DOCKERHUB_TOKEN）
+3. 推送代码或创建标签即可触发构建
+
+详细指南：
+- [快速设置指南](./GITHUB_ACTIONS_SETUP.md) - 5分钟快速配置
+- [完整文档](./GITHUB_ACTIONS_DOCKER.md) - 详细使用说明
+
+#### 手动部署
+
+详见：[DEPLOYMENT.md](./DEPLOYMENT.md)
+
+## 文档索引
+
+### 核心文档
+- [快速开始](./QUICKSTART.md) - 快速上手指南
+- [部署指南](./DEPLOYMENT.md) - 详细部署说明
+- [测试指南](./TESTING_GUIDE.md) - 测试说明
+
+### Docker 相关
+- [GitHub Actions 快速设置](./GITHUB_ACTIONS_SETUP.md) - **推荐：5分钟配置自动化部署**
+- [GitHub Actions 完整文档](./GITHUB_ACTIONS_DOCKER.md) - 详细功能说明
+- [Docker Hub 使用指南](./DOCKER_HUB.md) - Docker Hub 说明
+
+### 功能文档
+- [订单合同功能](./ORDER_CONTRACT_GUIDE.md) - 订单合同使用指南
+- [权限系统](./PERMISSIONS_GUIDE.md) - 权限管理说明
+- [支付测试](./PAYMENT_TESTING.md) - 支付功能测试
+- [钱包功能](./WALLET_FEATURE.md) - 钱包使用说明
+
+### 管理员文档
+- [管理员管理](./ADMIN_MANAGEMENT.md) - 管理员操作指南
+- [故障排查](./TROUBLESHOOTING_ADMIN.md) - 常见问题解决
+
 ## 注意事项
 
 1. 生产环境请务必修改 `JWT_SECRET` 为强密钥
 2. 支付配置中的敏感信息（如私钥）建议加密存储
 3. 数据库连接信息请妥善保管
 4. 首次启动前确保 PostgreSQL 服务已启动
+5. 使用 Docker 部署时注意配置环境变量和数据持久化
 
 ## 许可证
 
