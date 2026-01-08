@@ -11,6 +11,7 @@ COPY package.json yarn.lock* package-lock.json* ./
 
 # 智能选择包管理器：
 # - 如果存在 yarn.lock，启用 yarn（通过 corepack）并使用 yarn install
+#   -> 对 yarn install 添加重试（3 次），若仍失败则降级到 npm (npm ci 或 npm install)
 # - 如果存在 package-lock.json，使用 npm ci
 # - 否则使用 npm install
 RUN \
@@ -20,7 +21,22 @@ RUN \
     if ! command -v yarn >/dev/null 2>&1 || ! yarn --version >/dev/null 2>&1; then \
       npm install -g yarn; \
     fi; \
-    yarn install --frozen-lockfile; \
+    RETRIES=0; \
+    until [ "$RETRIES" -ge 3 ]; do \
+      yarn install --frozen-lockfile && break || { \
+        RETRIES=$((RETRIES+1)); \
+        echo "yarn install failed, retrying ($RETRIES/3)"; \
+        sleep 3; \
+      }; \
+    done; \
+    if [ "$RETRIES" -ge 3 ]; then \
+      echo "yarn install failed after 3 attempts — falling back to npm"; \
+      if [ -f package-lock.json ]; then \
+        npm ci; \
+      else \
+        npm install; \
+      fi; \
+    fi; \
   elif [ -f package-lock.json ]; then \
     npm ci; \
   else \
