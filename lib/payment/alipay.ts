@@ -46,6 +46,11 @@ class AlipayService {
         gateway: config.gateway || 'https://openapi-sandbox.dl.alipaydev.com/gateway.do'
       }
 
+      // 验证必需的回调地址配置
+      if (!config.notifyUrl) {
+        throw new Error('支付宝配置缺少回调通知地址(notifyUrl)，请在后台支付配置中设置')
+      }
+
       // 动态导入并初始化支付宝 SDK
       const AlipaySdk = await getAlipaySdk()
       this.sdk = new AlipaySdk({
@@ -68,6 +73,22 @@ class AlipayService {
       const sdk = await this.initialize()
       if (!sdk) throw new Error('支付宝 SDK 未初始化')
 
+      // 从配置中获取 notifyUrl
+      const paymentConfig = await prisma.paymentConfig.findUnique({
+        where: { name: 'alipay' }
+      })
+
+      if (!paymentConfig?.config || typeof paymentConfig.config !== 'object') {
+        throw new Error('支付宝配置信息不完整')
+      }
+
+      const config = paymentConfig.config as any
+      const notifyUrl = config.notifyUrl
+
+      if (!notifyUrl) {
+        throw new Error('支付宝配置缺少回调通知地址(notifyUrl)，请在后台支付配置中设置')
+      }
+
       const bizContent = {
         out_trade_no: orderNumber,
         product_code: 'FAST_INSTANT_TRADE_PAY',
@@ -82,13 +103,13 @@ class AlipayService {
         orderNumber, 
         amount: amount.toFixed(2),
         returnUrl,
-        notifyUrl: `${process.env.NEXT_PUBLIC_APP_URL}/api/payment/callback`
+        notifyUrl
       })
 
       const result = await sdk.pageExec('alipay.trade.page.pay', {
         bizContent,
         returnUrl,
-        notifyUrl: `${process.env.NEXT_PUBLIC_APP_URL}/api/payment/callback`,
+        notifyUrl,
       })
 
       console.log('✅ 支付宝支付订单创建成功', { orderNumber })

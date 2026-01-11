@@ -109,6 +109,24 @@ export async function POST(
     // 支付宝支付逻辑
     if (paymentMethod === 'alipay') {
       try {
+        // 获取支付宝配置（包含 returnUrl）
+        const paymentConfig = await prisma.paymentConfig.findUnique({
+          where: { name: 'alipay' }
+        })
+
+        if (!paymentConfig?.config || typeof paymentConfig.config !== 'object') {
+          return errorResponse('支付宝配置信息不完整')
+        }
+
+        const config = paymentConfig.config as any
+        const baseUrl = config.returnUrl || config.notifyUrl?.replace('/api/payment/callback', '') || process.env.NEXT_PUBLIC_APP_URL
+        
+        if (!baseUrl) {
+          return errorResponse('支付宝配置缺少回调地址，请在后台支付配置中设置')
+        }
+
+        const returnUrl = `${baseUrl}/orders/${params.id}/pay/success`
+
         // 使用支付宝服务
         const alipayService = (await import('@/lib/payment/alipay')).default
         const result = await alipayService.createPayment(
@@ -116,7 +134,7 @@ export async function POST(
           order.orderNumber,
           Number(order.totalAmount),
           `Axiarz商品购买 - 订单号：${order.orderNumber}`,
-          `${process.env.NEXT_PUBLIC_APP_URL}/orders/${params.id}/pay/success`
+          returnUrl
         )
 
         // 更新订单状态为支付中

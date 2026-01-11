@@ -105,6 +105,30 @@ export async function POST(request: NextRequest) {
     // 调用支付接口
     if (paymentMethod === 'alipay') {
       try {
+        // 获取支付宝配置（包含 returnUrl）
+        const alipayPaymentConfig = await prisma.paymentConfig.findUnique({
+          where: { name: 'alipay' }
+        })
+
+        if (!alipayPaymentConfig?.config || typeof alipayPaymentConfig.config !== 'object') {
+          return NextResponse.json({
+            success: false,
+            message: '支付宝配置信息不完整'
+          }, { status: 500 })
+        }
+
+        const alipayConfig = alipayPaymentConfig.config as any
+        const baseUrl = alipayConfig.returnUrl || alipayConfig.notifyUrl?.replace('/api/payment/callback', '') || process.env.NEXT_PUBLIC_APP_URL
+        
+        if (!baseUrl) {
+          return NextResponse.json({
+            success: false,
+            message: '支付宝配置缺少回调地址，请在后台支付配置中设置'
+          }, { status: 500 })
+        }
+
+        const returnUrl = `${baseUrl}/profile?tab=wallet&recharge=success`
+
         // 使用支付宝服务
         const alipayService = (await import('@/lib/payment/alipay')).default
         const result = await alipayService.createPayment(
@@ -112,7 +136,7 @@ export async function POST(request: NextRequest) {
           transaction.id, // 使用交易记录ID作为订单号
           Number(amount),
           `钱包充值 ¥${amount}`,
-          `${process.env.NEXT_PUBLIC_APP_URL}/profile?tab=wallet&recharge=success`
+          returnUrl
         )
 
         return NextResponse.json({

@@ -98,7 +98,8 @@ function validatePaymentConfig(name: string, config: any): boolean {
 
   switch (name) {
     case 'alipay':
-      return !!(config.appId && config.privateKey && config.publicKey)
+      // 支付宝必需字段：appId, privateKey, publicKey, notifyUrl
+      return !!(config.appId && config.privateKey && config.publicKey && config.notifyUrl)
     case 'wechat':
       return !!(config.appId && config.mchId && config.apiKey)
     case 'paypal':

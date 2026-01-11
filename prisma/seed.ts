@@ -91,6 +91,8 @@ async function main() {
         privateKey: '',
         publicKey: '',
         gateway: 'https://openapi.alipay.com/gateway.do',
+        notifyUrl: '', // 支付宝异步回调通知地址，例如: https://yourdomain.com/api/payment/callback
+        returnUrl: '', // 支付完成后的同步跳转地址（可选，不填则使用 notifyUrl 推导），例如: https://yourdomain.com
       },
     },
     {
@@ -102,7 +104,7 @@ async function main() {
         appId: '',
         mchId: '',
         apiKey: '',
-        notifyUrl: '',
+        notifyUrl: '', // 微信支付回调通知地址
       },
     },
     {
@@ -114,6 +116,7 @@ async function main() {
         clientId: '',
         clientSecret: '',
         mode: 'sandbox', // sandbox or live
+        notifyUrl: '', // PayPal IPN 通知地址（可选）
       },
     },
   ]
